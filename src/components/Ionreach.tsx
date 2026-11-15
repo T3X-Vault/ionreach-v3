@@ -834,75 +834,101 @@ export function Ionreach() {
         loop
         preload="auto"
       />
-      {!battle && <div className="absolute inset-0 bg-bg/45" />}
+      {!battle && (
+        <>
+          <div className="title-scrim absolute inset-0" />
+          <div className="title-grain pointer-events-none absolute inset-0" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ion/50 to-transparent" />
+        </>
+      )}
       {!battle && !menuChrome && (
         <div className="open-screen absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 z-20 flex items-center gap-2">
-          <button type="button" onClick={toggleMute} className="inline-flex min-h-11 min-w-11 items-center justify-center border border-line bg-bg/90" aria-label={muted ? "Sound on" : "Mute"}>
+          <button type="button" onClick={toggleMute} className="cta-ghost inline-flex min-h-11 min-w-11 items-center justify-center" aria-label={muted ? "Sound on" : "Mute"}>
             {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
           </button>
-          <button type="button" onClick={toggleFull} className="inline-flex min-h-11 min-w-11 items-center justify-center border border-line bg-bg/90" aria-label="Full screen">
+          <button type="button" onClick={toggleFull} className="cta-ghost inline-flex min-h-11 min-w-11 items-center justify-center" aria-label="Full screen">
             {full ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
           </button>
-          <button type="button" onClick={() => setMenuChrome(true)} className="min-h-11 border border-ion bg-bg/90 px-3 font-display text-ion">
+          <button type="button" onClick={() => setMenuChrome(true)} className="cta-primary min-h-11 px-4 font-display text-xl tracking-wide">
             Menu
           </button>
         </div>
       )}
       {!battle && menuChrome && (
-        <div className="open-menu absolute inset-0 z-10 flex flex-col bg-[#07101c]/95">
-          <header className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto px-3">
-            <div className="min-w-0">
-              <p className="truncate font-display text-sm leading-tight">IONREACH</p>
-              <p className="truncate text-[11px] tracking-[0.16em] text-ion">GLASS HORIZON</p>
+        <div className={"open-menu absolute inset-0 z-10 flex flex-col " + (menuTool ? "menu-shell" : "")}>
+          <header className="anim-fade flex shrink-0 items-center gap-3 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
+            <div className="flex min-w-0 items-center gap-3">
+              <img src="/brand/futuret3ch.png?v=2" alt="" className="h-9 w-9 object-contain" />
+              <div className="min-w-0">
+                <p className="font-display hud-chip text-[11px] leading-none text-muted">Supported by</p>
+                <p className="mt-1 truncate font-display text-lg leading-none tracking-[0.12em] text-fg">FUTURET3CH</p>
+              </div>
             </div>
-            <button type="button" onClick={toggleMute} className="ml-auto inline-flex min-h-9 min-w-9 items-center justify-center border border-line" aria-label={muted ? "Sound on" : "Mute"}>
+            <button type="button" onClick={toggleMute} className="cta-ghost ml-auto inline-flex min-h-10 min-w-10 items-center justify-center" aria-label={muted ? "Sound on" : "Mute"}>
               {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
             </button>
-            <button type="button" onClick={toggleFull} className="inline-flex min-h-9 min-w-9 items-center justify-center border border-line" aria-label="Full screen">
+            <button type="button" onClick={toggleFull} className="cta-ghost inline-flex min-h-10 min-w-10 items-center justify-center" aria-label="Full screen">
               {full ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
             </button>
-            <button type="button" onClick={() => setMenuChrome(false)} className="inline-flex min-h-9 min-w-9 items-center justify-center border border-line" aria-label="Hide menu">
+            <button type="button" onClick={() => setMenuChrome(false)} className="cta-ghost inline-flex min-h-10 min-w-10 items-center justify-center" aria-label="Hide menu">
               <EyeOff className="size-4" />
             </button>
           </header>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {!menuTool ? (
-              <nav className="flex flex-1 flex-col justify-center gap-2 px-4 pb-8">
-                {(
-                  [
-                    ["campaign", "Campaign"],
-                    ["multi", "Multiplayer"],
-                    ["settings", "Settings"],
-                    ["manual", "Manual"],
-                    ["records", "Achievements"],
-                  ] as const
-                ).map(([id, label]) => (
+              <div className="flex min-h-0 flex-1 flex-col justify-end px-5 pb-6 md:px-10 md:pb-8">
+                <div className="max-w-xl">
+                  <div className="anim-rise ion-rule anim-pulse-ion mb-4 origin-left" />
+                  <h1 className="anim-rise font-display text-[clamp(4rem,16vw,8.5rem)] leading-[0.82] font-semibold tracking-[0.02em] text-fg">
+                    IONREACH
+                  </h1>
+                  <p className="anim-rise-delay-1 mt-2 font-display text-2xl leading-none tracking-[0.08em] text-ion md:text-3xl">
+                    Glass Horizon
+                  </p>
+                  <p className="anim-rise-delay-2 mt-3 max-w-md text-sm text-muted md:text-base">
+                    Country chapters across rivers, trees, and mountains. Earn T3X. Hold the horizon.
+                  </p>
+                </div>
+                <nav className="anim-rise-delay-3 mt-6 grid max-w-md grid-cols-1 gap-2 sm:grid-cols-2">
+                  {(
+                    [
+                      ["campaign", "Campaign"],
+                      ["multi", "Multiplayer"],
+                      ["settings", "Settings"],
+                      ["manual", "Manual"],
+                      ["records", "Achievements"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        if (id === "settings") setSettingsTab("wallet");
+                        setMenuTool(id);
+                      }}
+                      className={"menu-nav-btn min-h-12 px-4 font-display text-xl " + (id === "campaign" ? "sm:col-span-2 border-ion/50" : "")}
+                    >
+                      {label}
+                    </button>
+                  ))}
                   <button
-                    key={id}
                     type="button"
                     onClick={() => {
-                      if (id === "settings") setSettingsTab("wallet");
-                      setMenuTool(id);
+                      setSettingsTab("saves");
+                      setMenuTool("settings");
                     }}
-                    className="min-h-12 border border-[#9aabba] bg-gradient-to-b from-[#3a4654] to-[#141a22] font-display text-lg tracking-[0.22em] uppercase"
+                    className="menu-nav-btn min-h-12 px-4 font-display text-xl sm:col-span-2"
                   >
-                    {label}
+                    Load
                   </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSettingsTab("saves");
-                    setMenuTool("settings");
-                  }}
-                  className="min-h-12 border border-[#9aabba] bg-gradient-to-b from-[#3a4654] to-[#141a22] font-display text-lg tracking-[0.22em] uppercase"
-                >
-                  Load
-                </button>
-                <p className="pt-2 text-center text-xs text-muted">Hide the menu to watch the trailer behind it.</p>
-              </nav>
+                </nav>
+                <div className="anim-rise-delay-3 mt-5 flex items-end gap-3">
+                  <img src="/brand/t3x-coin.png" alt="T3x" className="anim-float h-14 w-14 object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.55)] md:h-16 md:w-16" />
+                  <p className="pb-1 text-xs text-muted">Hide the menu to watch the trailer full-bleed.</p>
+                </div>
+              </div>
             ) : (
-              <button type="button" onClick={() => setMenuTool(null)} className="m-3 min-h-11 self-start border border-line px-3 font-display">
+              <button type="button" onClick={() => setMenuTool(null)} className="cta-ghost m-3 min-h-11 self-start px-4 font-display text-xl">
                 Back
               </button>
             )}
@@ -914,25 +940,25 @@ export function Ionreach() {
                     const on = pickingCountry === id;
                     const fact = ARMY[id];
                     return (
-                      <section key={id} className={on ? "border border-ion" : "border border-line"}>
+                      <section key={id} className={on ? "panel-glass border-ion" : "panel-glass"}>
                         <button type="button" onClick={() => setPickingCountry(on ? null : id)} className="flex w-full items-center gap-3 p-2 text-left">
                           <Flag id={id} className="h-12 w-20 shrink-0" />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate font-display text-lg">{chapters[0]?.country}</span>
+                            <span className="block truncate font-display text-xl tracking-wide">{chapters[0]?.country}</span>
                           </span>
                         </button>
                         {on && fact && (
-                          <div className="border-t border-line px-3 py-3">
-                            <p className="font-display text-xs tracking-[0.16em] text-ion">PUBLIC RECORD</p>
+                          <div className="border-t border-line/80 px-3 py-3">
+                            <p className="font-display hud-chip text-xs text-ion">Public record</p>
                             <p className="mt-1 text-sm text-muted">{fact.line}</p>
                             <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
                               <div>
                                 <dt className="text-[11px] text-muted">People</dt>
-                                <dd className="font-display">{fact.people}</dd>
+                                <dd className="font-display text-lg">{fact.people}</dd>
                               </div>
                               <div>
                                 <dt className="text-[11px] text-muted">Active force</dt>
-                                <dd className="font-display">{fact.active}</dd>
+                                <dd className="font-display text-lg">{fact.active}</dd>
                               </div>
                               <div className="col-span-2">
                                 <dt className="text-[11px] text-muted">Services</dt>
@@ -953,13 +979,13 @@ export function Ionreach() {
                                   const open = isOpen(list, index);
                                   const upcoming = index === next;
                                   return (
-                                    <article key={chapter.id} className="border border-line bg-[#101820] p-2">
-                                      <p className="sticky top-0 z-20 bg-[#101820] py-1 font-display text-base text-fg">{chapter.theater}</p>
+                                    <article key={chapter.id} className="border border-line/80 bg-bg/40 p-2">
+                                      <p className="sticky top-0 z-20 bg-bg/90 py-1 font-display text-lg tracking-wide text-fg">{chapter.theater}</p>
                                       <p className={upcoming ? "mt-1 text-[13px] leading-snug text-[#6cb6ff]" : "mt-1 text-[13px] leading-snug text-fg/80"}>{STORIES[chapter.theater] ?? chapter.line}</p>
                                       {!open && <p className="mt-1 text-[11px] text-muted">Sealed until the fight before it is held.</p>}
                                       <div className="mt-2 flex gap-1">
-                                        <button type="button" disabled={!chapter.video} onClick={() => { if (!chapter.video) return; setMenuTool(null); setBrief(chapter); }} className="min-h-8 border border-line px-2 font-display text-xs disabled:text-muted">Watch</button>
-                                        <button type="button" disabled={!open || !chapter.video} onClick={() => { if (!open || !chapter.video) return; setMenuTool(null); setBrief(chapter); }} className="min-h-8 bg-ion px-2 font-display text-xs text-bg disabled:bg-line disabled:text-muted">Play</button>
+                                        <button type="button" disabled={!chapter.video} onClick={() => { if (!chapter.video) return; setMenuTool(null); setBrief(chapter); }} className="cta-ghost min-h-8 px-2 font-display text-sm disabled:opacity-40">Watch</button>
+                                        <button type="button" disabled={!open || !chapter.video} onClick={() => { if (!open || !chapter.video) return; setMenuTool(null); setBrief(chapter); }} className="cta-primary min-h-8 px-2 font-display text-sm disabled:opacity-40">Play</button>
                                       </div>
                                     </article>
                                   );
@@ -1016,7 +1042,7 @@ export function Ionreach() {
               />
             )}
             {menuTool === "manual" && (
-              <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 text-sm text-muted">
+              <ul className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-4 pb-4 text-sm leading-relaxed text-muted">
                 <li>Hide this menu to watch the trailer behind it. Menu brings the list back.</li>
                 <li>In a fight, the top bar and the bottom dock hide together. Show panels brings them back.</li>
                 <li>Select on the battle bar draws a box. Shift-click adds. Drag pans when Select is off.</li>
@@ -1028,10 +1054,10 @@ export function Ionreach() {
               </ul>
             )}
             {menuTool === "records" && (
-              <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+              <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-3 pb-3">
                 {allBadges().map(({ badge, owned }) => (
-                  <li key={badge.id} className={owned ? "border border-gold/50 px-2 py-1" : "border border-line px-2 py-1 opacity-50"}>
-                    <p className="font-display text-sm">{badge.name}</p>
+                  <li key={badge.id} className={owned ? "panel-glass border-gold/40 px-3 py-2" : "panel-glass px-3 py-2 opacity-50"}>
+                    <p className="font-display text-lg tracking-wide">{badge.name}</p>
                     <p className="text-[11px] text-muted">{owned ? "Earned. " : "Locked. "}{badge.detail}</p>
                   </li>
                 ))}
@@ -1042,13 +1068,13 @@ export function Ionreach() {
       )}
 
       {cinema && (
-        <div className="absolute inset-0 z-30 bg-bg">
+        <div className="absolute inset-0 z-30 bg-bg anim-fade">
           <video ref={cutRef} className="h-full w-full object-contain" src="/media/trailer.mp4?v=drive" autoPlay muted loop playsInline />
-          <button type="button" onClick={() => { setTrailerChoice(false); closeCinema(); }} className="absolute top-3 left-3 z-30 min-h-11 border border-line bg-bg px-4 font-display">Back to menu</button>
-          <div className="absolute inset-x-0 bottom-0 z-30 flex flex-wrap items-center gap-2 border-t border-line bg-bg px-3 py-3">
-            <button type="button" onClick={() => { setTrailerChoice(false); closeCinema(); }} className="min-h-11 border border-line bg-surface px-4 font-display">Back to menu</button>
-            <button type="button" onClick={() => { pendingLoad.current = true; setSettings(true); }} className="min-h-11 border border-line px-3 font-display">Load saved game</button>
-            <button type="button" onClick={() => { setTrailerChoice(false); closeCinema(); setMenuTool("campaign"); setMenuChrome(true); }} className="min-h-11 bg-ion px-4 font-display text-bg">Play now</button>
+          <button type="button" onClick={() => { setTrailerChoice(false); closeCinema(); }} className="cta-ghost absolute top-3 left-3 z-30 min-h-11 px-4 font-display text-xl">Back to menu</button>
+          <div className="absolute inset-x-0 bottom-0 z-30 flex flex-wrap items-center gap-2 border-t border-line/80 bg-bg/95 px-3 py-3 backdrop-blur-sm">
+            <button type="button" onClick={() => { setTrailerChoice(false); closeCinema(); }} className="cta-ghost min-h-11 px-4 font-display text-xl">Back to menu</button>
+            <button type="button" onClick={() => { pendingLoad.current = true; setSettings(true); }} className="cta-ghost min-h-11 px-3 font-display text-xl">Load saved game</button>
+            <button type="button" onClick={() => { setTrailerChoice(false); closeCinema(); setMenuTool("campaign"); setMenuChrome(true); }} className="cta-primary min-h-11 px-4 font-display text-xl">Play now</button>
           </div>
         </div>
       )}
@@ -1147,7 +1173,7 @@ export function Ionreach() {
 
       {battle && (
         <div className="absolute inset-0 flex flex-col bg-bg">
-          <header className={(chrome ? "flex " : "hidden ") + "h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-[#1e3a5f] bg-[#07101c] px-2"}>
+          <header className={(chrome ? "flex " : "hidden ") + "h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-ion/20 bg-[#07101c]/95 px-2 backdrop-blur-sm"}>
               <Flag id={chapterById(chapterRef.current).countryId} className="h-6 w-9 shrink-0" />
               <div className="min-w-0">
                 <p className="truncate font-display text-xs leading-tight">
@@ -1264,7 +1290,7 @@ export function Ionreach() {
               </button>
             )}
           </div>
-          <footer className={(chrome ? "" : "hidden ") + "shrink-0 border-t border-[#1e3a5f] bg-[#07101c]"}>
+          <footer className={(chrome ? "" : "hidden ") + "shrink-0 border-t border-ion/20 bg-[#07101c]/95 backdrop-blur-sm"}>
               <div className="flex gap-1 overflow-x-auto px-2 py-1">
                 {(
                   [
@@ -1423,7 +1449,9 @@ export function Ionreach() {
           else sfx.current.stopScore();
         }}
       />
-      {!battle && <img src="/brand/t3x-coin.png" alt="T3x" className="pointer-events-none absolute right-3 bottom-6 z-40 h-16 w-16 object-contain drop-shadow-[0_6px_16px_rgba(0,0,0,0.65)] md:right-4 md:h-20 md:w-20" />}
+      {!battle && !menuChrome && (
+        <img src="/brand/t3x-coin.png" alt="T3x" className="pointer-events-none absolute right-3 bottom-6 z-40 h-16 w-16 object-contain drop-shadow-[0_6px_16px_rgba(0,0,0,0.65)] md:right-4 md:h-20 md:w-20" />
+      )}
     </main>
   );
 }
