@@ -87,51 +87,16 @@ function panelTex(): THREE.CanvasTexture {
 }
 
 function paintMat(color: THREE.ColorRepresentation, pattern: THREE.CanvasTexture, tier: number): THREE.MeshPhysicalMaterial {
+  // Flatter C&C-style paint — less PBR gloss, more readable blocks.
   return new THREE.MeshPhysicalMaterial({
     color,
     map: pattern,
-    roughness: tier >= 4 ? 0.28 : tier >= 3 ? 0.4 : 0.56,
-    metalness: tier >= 3 ? 0.58 : 0.32,
-    clearcoat: tier >= 3 ? 0.5 : 0.16,
-    clearcoatRoughness: 0.34,
-    envMapIntensity: 1.1,
+    roughness: tier >= 4 ? 0.48 : tier >= 3 ? 0.58 : 0.72,
+    metalness: tier >= 3 ? 0.38 : 0.18,
+    clearcoat: tier >= 3 ? 0.18 : 0.04,
+    clearcoatRoughness: 0.55,
+    envMapIntensity: 0.45,
   });
-}
-
-function hullShape(len: number, wid: number, h: number, nose = 0.48): THREE.BufferGeometry {
-  const hl = len / 2;
-  const shape = new THREE.Shape();
-  shape.moveTo(-hl, h * 0.05);
-  shape.lineTo(hl * 0.18, h * 0.05);
-  shape.lineTo(hl * 0.58, h * 0.2);
-  shape.lineTo(hl, h * nose);
-  shape.lineTo(hl * 0.16, h);
-  shape.lineTo(-hl * 0.48, h * 0.97);
-  shape.lineTo(-hl * 0.8, h * 0.68);
-  shape.lineTo(-hl, h * 0.4);
-  shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: wid,
-    bevelEnabled: true,
-    bevelThickness: Math.min(0.32, h * 0.045),
-    bevelSize: Math.min(0.26, wid * 0.02),
-    bevelSegments: 1,
-  });
-  geo.translate(0, 0, -wid / 2);
-  geo.computeVertexNormals();
-  return geo;
-}
-
-function roofPrism(span: number, rise: number, depth: number): THREE.BufferGeometry {
-  const shape = new THREE.Shape();
-  shape.moveTo(-span / 2, 0);
-  shape.lineTo(span / 2, 0);
-  shape.lineTo(0, rise);
-  shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
-  geo.translate(0, 0, -depth / 2);
-  geo.computeVertexNormals();
-  return geo;
 }
 
 function clamp(v: number, a: number, b: number): number {
@@ -207,7 +172,7 @@ export class World3D {
   private ghosts = new Map<string, THREE.Group>();
   private shots: THREE.Mesh[] = [];
   private sparks: THREE.Mesh[] = [];
-  private rings: THREE.Mesh[] = [];
+  private rings: THREE.Group[] = [];
   private boxMesh: THREE.Mesh;
   private placeMesh: THREE.Group | null = null;
   private placeKind: Kind | null = null;
@@ -229,7 +194,7 @@ export class World3D {
     this.renderer.setPixelRatio(Math.min(small ? 1.25 : 1.7, window.devicePixelRatio || 1));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.06;
+    this.renderer.toneMappingExposure = 0.98;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.patterns = [grayCamo(1), grayCamo(2), grayCamo(3), grayCamo(4)];
@@ -243,7 +208,7 @@ export class World3D {
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
     this.scene.add(this.sunTarget);
-    this.sun = new THREE.DirectionalLight("#fff1d2", 2.55);
+    this.sun = new THREE.DirectionalLight("#f0e6d0", 1.55);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.camera.near = 20;
@@ -252,8 +217,8 @@ export class World3D {
     this.sun.shadow.normalBias = 0.045;
     this.sun.target = this.sunTarget;
     this.scene.add(this.sun);
-    this.scene.add(new THREE.HemisphereLight("#d7e6f4", "#3a2a1e", 0.72));
-    const fill = new THREE.DirectionalLight("#8eb4d0", 0.5);
+    this.scene.add(new THREE.HemisphereLight("#c8d4dc", "#3a3428", 1.05));
+    const fill = new THREE.DirectionalLight("#a8b8c0", 0.65);
     fill.position.set(480, 220, -620);
     this.scene.add(fill);
     const sky = new THREE.Mesh(
@@ -287,7 +252,7 @@ export class World3D {
     this.scene.fog = new THREE.Fog("#8aa0b0", 280, 2400);
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1024, 1024), 0.16, 0.4, 0.84));
+    this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1024, 1024), 0.04, 0.2, 0.92));
     this.composer.addPass(new OutputPass());
   }
 
@@ -355,7 +320,7 @@ export class World3D {
     this.camera.aspect = Math.max(0.2, viewW / Math.max(1, viewH));
     const eye = glance === "eye" ? this.eyeUnit(sim) : null;
     this.eyeId = eye ? eye.id : 0;
-    this.camera.fov = glance === "eye" ? look.fov : 48;
+    this.camera.fov = glance === "eye" ? look.fov : 40;
     this.camera.updateProjectionMatrix();
     this.syncActors(sim, cinematic);
     this.syncGhosts(sim, cinematic);
@@ -422,10 +387,11 @@ export class World3D {
       );
       return;
     }
-    const dist = 860 / Math.max(0.4, cam.z);
-    const pitch = 0.96;
-    this.camera.position.set(cam.x + (Math.random() - 0.5) * shake * 10, Math.sin(pitch) * dist, cam.y + Math.cos(pitch) * dist);
-    this.camera.lookAt(cam.x, 8, cam.y);
+    // Steeper isometric-style pitch — closer to classic C&C tactical view.
+    const dist = 920 / Math.max(0.4, cam.z);
+    const pitch = 1.18;
+    this.camera.position.set(cam.x + (Math.random() - 0.5) * shake * 8, Math.sin(pitch) * dist, cam.y + Math.cos(pitch) * dist);
+    this.camera.lookAt(cam.x, 4, cam.y);
   }
 
   private dressViewGun(eye: Ent, sim: Sim): void {
@@ -777,7 +743,8 @@ export class World3D {
 
   private buildSoldier(group: THREE.Group, legs: THREE.Object3D[], kind: Kind, team: 0 | 1, tier: number): void {
     const rig = new THREE.Group();
-    rig.scale.setScalar(1.22 + (tier - 1) * 0.14);
+    // Oversized RTS infantry so they read at steeper C&C zoom.
+    rig.scale.setScalar(1.42 + (tier - 1) * 0.12);
     group.add(rig);
     const pattern = this.patterns[Math.max(0, Math.min(3, tier - 1))];
     // Keep all tiers dark enough to read on pale winter maps (no near-white armor).
@@ -927,100 +894,66 @@ export class World3D {
 
   private buildVehicle(group: THREE.Group, kind: Kind, team: 0 | 1, tier: number): THREE.Object3D {
     const spec = vehicleSpec(kind);
-    const bulk = 1 + (tier - 1) * 0.13;
+    const bulk = 1.08 + (tier - 1) * 0.12;
     const pattern = this.patterns[Math.max(0, Math.min(3, tier - 1))];
-    // Tier paints stay olive/steel — never bleach to white on snow maps.
+    // Classic RTS chunk: hard olive/steel blocks, loud faction stripe.
     const paint = new THREE.Color(spec.paint).lerp(new THREE.Color(["#3a4a34", "#243028", "#3a444c", "#2a3238"][tier - 1] ?? spec.paint), 0.7);
     if (team === 1) paint.lerp(new THREE.Color("#8a4038"), 0.55);
     const hullMat = paintMat(paint, pattern, tier);
-    const dark = mat("#12161a", 0.46, 0.5);
-    const rubber = mat("#101214", 0.82, 0.06);
-    const steel = mat("#d0d8de", 0.2, 0.86);
-    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.25, 0.3, team === 0 ? "#3ee0c5" : "#ff4d2e", 1.1);
+    const dark = mat("#12161a", 0.55, 0.4);
+    const rubber = mat("#101214", 0.85, 0.05);
+    const steel = mat("#c8d0d6", 0.25, 0.8);
+    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.22, 0.28, team === 0 ? "#3ee0c5" : "#ff4d2e", 1.25);
     const len = spec.len * bulk;
-    const wid = spec.wid * bulk;
-    const hullH = (kind === "bastion" ? 7.1 : kind === "viper" ? 4.35 : 5.85) + tier * 0.28;
-    const hull = new THREE.Mesh(hullShape(len, wid * 0.62, hullH, kind === "viper" ? 0.42 : kind === "bastion" ? 0.7 : 0.58), hullMat);
-    hull.castShadow = true;
-    hull.receiveShadow = true;
-    hull.position.y = kind === "viper" ? 2.7 : 2.35;
-    group.add(hull);
-    // Glacis / nose plate
-    const nose = piece(group, BOX, hullMat, len * 0.38, kind === "viper" ? 3.35 : 3.55, 0, len * 0.28, hullH * 0.55, wid * 0.52);
-    nose.rotation.z = -0.38;
-    piece(group, BOX, dark, len * 0.42, kind === "viper" ? 3.1 : 3.25, 0, len * 0.08, hullH * 0.22, wid * 0.48, false);
+    const wid = spec.wid * bulk * 1.06;
+    const hullH = (kind === "bastion" ? 7.4 : kind === "viper" ? 4.6 : 6.2) + tier * 0.22;
+    // Boxy C&C hull (not organic curves).
+    piece(group, BOX, hullMat, 0, hullH * 0.42, 0, len * 0.92, hullH * 0.72, wid * 0.72);
+    piece(group, BOX, hullMat, len * 0.28, hullH * 0.48, 0, len * 0.42, hullH * 0.55, wid * 0.62);
+    piece(group, BOX, dark, len * 0.42, hullH * 0.35, 0, len * 0.12, hullH * 0.28, wid * 0.55, false);
     if (kind === "viper") this.addWheels(group, len, wid, rubber, steel);
-    else this.addTracks(group, len, wid, rubber, steel, tier >= 2 ? dark : null);
-    // Side skirts / stowage
-    piece(group, BOX, dark, 0, 4.35, wid * 0.36, len * 0.78, 0.38, 1.25, false);
-    piece(group, BOX, dark, 0, 4.35, -wid * 0.36, len * 0.78, 0.38, 1.25, false);
-    piece(group, BOX, hullMat, -len * 0.08, 4.85, wid * 0.38, len * 0.42, 0.85, 0.55, false);
-    piece(group, BOX, hullMat, -len * 0.08, 4.85, -wid * 0.38, len * 0.42, 0.85, 0.55, false);
-    piece(group, SPHERE, mat("#f7f6ea", 0.18, 0.1, "#fff4c8", 1), len * 0.48, 3.35, wid * 0.16, 0.55, 0.48, 0.55, false);
-    piece(group, SPHERE, mat("#f7f6ea", 0.18, 0.1, "#fff4c8", 1), len * 0.48, 3.35, -wid * 0.16, 0.55, 0.48, 0.55, false);
-    piece(group, CYL, dark, -len * 0.42, 4.65, wid * 0.12, 0.36, 1.7, 0.36, false).rotation.z = Math.PI / 2;
-    piece(group, BOX, accent, -len * 0.02, hullH + 1.15, 0, len * 0.35, 0.28, 1.85, false);
-    piece(group, BOX, accent, len * 0.2, hullH * 0.55, wid * 0.32, 0.35, 1.4, 0.2, false);
-    if (kind === "t3x" || kind === "lancer" || kind === "bastion") {
-      piece(group, BOX, dark, len * 0.12, hullH * 0.55, wid * 0.28, 2.2, 1.1, 0.35, false);
-      piece(group, BOX, dark, len * 0.12, hullH * 0.55, -wid * 0.28, 2.2, 1.1, 0.35, false);
-    }
-    if (tier >= 3) {
-      piece(group, BOX, mat("#6a5840", 0.4, 0.5), -len * 0.02, hullH + 1.65, wid * 0.12, 3.1, 0.4, wid * 0.18, false);
-      piece(group, BOX, mat("#6a5840", 0.4, 0.5), len * 0.12, hullH + 1.65, -wid * 0.08, 2.6, 0.4, wid * 0.16, false);
-    }
-    if (tier >= 4) piece(group, BOX, mat("#e8c56b", 0.26, 0.65, "#e8c56b", 0.22), 0, hullH + 1.45, 0, len * 0.36, 0.16, 0.4, false);
+    else this.addTracks(group, len, wid, rubber, steel, dark);
+    piece(group, BOX, dark, 0, hullH * 0.55, wid * 0.4, len * 0.82, hullH * 0.35, 0.55);
+    piece(group, BOX, dark, 0, hullH * 0.55, -wid * 0.4, len * 0.82, hullH * 0.35, 0.55);
+    piece(group, BOX, accent, 0, hullH * 0.78, 0, len * 0.42, 0.35, wid * 0.22, false);
+    piece(group, BOX, accent, len * 0.18, hullH * 0.45, wid * 0.38, 0.4, 1.6, 0.25, false);
     if (kind === "harvester") {
-      piece(group, BOX, dark, -len * 0.04, 7.4, 0, len * 0.48, 2.8, wid * 0.4);
-      piece(group, BOX, mat("#143832", 0.35, 0.25, "#3ee0c5", 0.55), -len * 0.04, 9, 0, len * 0.3, 0.45, wid * 0.22, false);
-      const arm = piece(group, BOX, steel, len * 0.36, 5.5, 0, len * 0.26, 0.7, 0.75);
-      arm.rotation.z = -0.55;
-      piece(group, BOX, dark, len * 0.52, 3.2, 0, 2.4, 1.8, wid * 0.28);
+      piece(group, BOX, dark, -len * 0.05, hullH * 0.95, 0, len * 0.5, hullH * 0.55, wid * 0.48);
+      piece(group, BOX, mat("#143832", 0.35, 0.25, "#3ee0c5", 0.55), -len * 0.05, hullH * 1.25, 0, len * 0.32, 0.4, wid * 0.28, false);
+      const arm = piece(group, BOX, steel, len * 0.34, hullH * 0.55, 0, len * 0.28, 0.8, 0.9);
+      arm.rotation.z = -0.45;
+      piece(group, BOX, dark, len * 0.5, 3.0, 0, 2.6, 2.0, wid * 0.32);
       return new THREE.Group();
     }
-    if (kind === "bastion" && tier >= 2) piece(group, BOX, dark, len * 0.5, 2.4, 0, 1.4, 2.6, wid * 0.72);
     const turret = new THREE.Group();
-    turret.position.set(-len * 0.02, hullH + 1.2, 0);
+    turret.position.set(-len * 0.04, hullH * 0.85, 0);
     if (kind === "howl") {
-      const rack = piece(turret, BOX, hullMat, 0.6, 1.5, 0, 8, 2.3, 6.4);
-      rack.rotation.z = -0.28;
-      for (const y of [0.8, 2.15]) {
-        for (const z of [-1.7, 0, 1.7]) {
-          piece(turret, CYL, steel, 3.4, y, z, 0.4, 6.8, 0.4).rotation.z = -1.2;
-        }
-      }
-      piece(turret, CYL, dark, -2.4, 2.6, 0, 0.1, 2.4 + tier, 0.1, false);
+      piece(turret, BOX, hullMat, 0.4, 1.4, 0, 9, 2.6, 7);
+      for (const y of [0.7, 2.1]) for (const z of [-1.8, 0, 1.8]) piece(turret, CYL, steel, 3.2, y, z, 0.42, 7.2, 0.42).rotation.z = -1.15;
       group.add(turret);
       return turret;
     }
     if (kind === "aegis") {
-      piece(turret, CYL, hullMat, 0, 1.05, 0, 3.3, 1.5, 3.3);
-      for (const z of [-1.45, 1.45]) piece(turret, CYL, steel, spec.barrel * 0.32, 2.5, z, 0.36, spec.barrel * 0.9, 0.36).rotation.z = -Math.PI / 2;
-      piece(turret, CYL, dark, -1.5, 3.2, 0, 0.22, 3.4, 0.22, false);
-      const dish = piece(turret, CYL, steel, -1.5, 5.1 + tier * 0.45, 0, 2.5 + tier * 0.25, 0.22, 2.5 + tier * 0.25);
-      dish.rotation.x = 1.05;
+      piece(turret, BOX, hullMat, 0, 1.2, 0, 7, 2.4, 7);
+      for (const z of [-1.5, 1.5]) piece(turret, CYL, steel, spec.barrel * 0.3, 2.2, z, 0.38, spec.barrel * 0.85, 0.38).rotation.z = -Math.PI / 2;
+      piece(turret, CYL, dark, -1.4, 3.4, 0, 0.25, 3.6, 0.25, false);
+      const dish = piece(turret, CYL, steel, -1.4, 5.2, 0, 2.6, 0.25, 2.6);
+      dish.rotation.x = 1.0;
       group.add(turret);
       return turret;
     }
-    const cheeks = spec.turret * (0.4 + tier * 0.035);
-    piece(turret, CYL, hullMat, -0.4, 1.45, 0, cheeks * 0.48, 2.3 + tier * 0.12, cheeks * 0.4);
-    piece(turret, BOX, hullMat, -cheeks * 0.05, 1.65, 0, cheeks * 0.72, 1.45, cheeks * 0.58);
-    piece(turret, BOX, dark, cheeks * 0.32, 1.7, 0, cheeks * 0.26, 1.05, cheeks * 0.36);
-    const barrels = kind === "bastion" ? 2 : 1;
+    // Box turret like classic C&C medium/mammoth tanks.
+    const tw = spec.turret * (0.42 + tier * 0.03);
+    piece(turret, BOX, hullMat, 0, 1.55, 0, tw * 0.85, 2.5, tw * 0.72);
+    piece(turret, BOX, dark, tw * 0.28, 1.55, 0, tw * 0.28, 1.8, tw * 0.45);
+    piece(turret, BOX, accent, 0, 2.9, 0, tw * 0.55, 0.28, tw * 0.35, false);
+    const barrels = kind === "bastion" || kind === "t3x" ? 2 : 1;
     for (let i = 0; i < barrels; i++) {
-      const z = barrels === 1 ? 0 : i === 0 ? -0.75 : 0.75;
-      piece(turret, CYL, steel, spec.barrel * 0.5, 1.85, z, spec.thick * 0.48, spec.barrel, spec.thick * 0.48).rotation.z = -Math.PI / 2;
-      piece(turret, CYL, dark, spec.barrel * 0.96, 1.85, z, spec.thick * 0.75, 0.85, spec.thick * 0.75, false).rotation.z = -Math.PI / 2;
+      const z = barrels === 1 ? 0 : i === 0 ? -0.85 : 0.85;
+      piece(turret, CYL, steel, spec.barrel * 0.48, 1.7, z, spec.thick * 0.55, spec.barrel * 1.05, spec.thick * 0.55).rotation.z = -Math.PI / 2;
+      piece(turret, CYL, dark, spec.barrel * 0.95, 1.7, z, spec.thick * 0.85, 1.0, spec.thick * 0.85, false).rotation.z = -Math.PI / 2;
     }
-    piece(turret, CYL, steel, spec.barrel * 0.28, 1.15, cheeks * 0.22, 0.1, spec.barrel * 0.42, 0.1, false).rotation.z = -Math.PI / 2;
-    piece(turret, SPHERE, dark, -cheeks * 0.15, 2.95, 0.2, 0.65, 0.32, 0.65, false);
-    if (tier >= 2) {
-      piece(turret, CYL, dark, cheeks * 0.05, 2.55, cheeks * 0.28, 0.26, 0.6, 0.26, false);
-      piece(turret, CYL, dark, cheeks * 0.05, 2.55, -cheeks * 0.28, 0.26, 0.6, 0.26, false);
-    }
-    if (kind === "t3x" || tier >= 4) piece(turret, BOX, mat("#e8c56b", 0.24, 0.7, "#e8c56b", 0.3), 0, 3.15, 0, cheeks, 0.18, cheeks * 0.4, false);
-    if (kind === "t3x") piece(turret, CYL, accent, -1.3, 4.8, 0, 0.12, 3.6, 0.12, false);
-    if (tier >= 4) piece(turret, CYL, mat("#eef3f6", 0.3, 0.55), -1.5, 4.3, -1.3, 0.07, 3.3, 0.07, false);
+    if (kind === "t3x") piece(turret, BOX, mat("#c8a85a", 0.3, 0.55, "#c8a85a", 0.35), 0, 3.15, 0, tw * 0.7, 0.22, tw * 0.35, false);
     group.add(turret);
     return turret;
   }
@@ -1083,15 +1016,15 @@ export class World3D {
     const span = Math.max(kind === "wall" ? 18 : 20, def.fw * TILE * (kind === "wall" ? 0.62 : 0.72));
     const deep = Math.max(kind === "wall" ? 7 : 16, def.fh * TILE * 0.68);
     const t = clamp(tier, 1, 4);
-    const grow = 0.82 + t * 0.16;
+    const grow = 0.9 + t * 0.18;
     const tint = new THREE.Color(["#8a9298", "#5a646c", "#9aa4aa", "#b8b0a0"][t - 1]);
     if (team === 1) tint.lerp(new THREE.Color("#8a5048"), 0.38);
     const wall = paintMat(tint, this.panels, t);
-    const concrete = mat("#6a7076", 0.92, 0.08);
-    const roof = mat(t >= 4 ? "#9a8a5a" : "#2e363c", 0.55, t >= 4 ? 0.45 : 0.28);
-    const dark = mat("#14181c", 0.62, 0.35);
-    const glass = mat(team === 0 ? "#6a9ab0" : "#a07060", 0.12, 0.15, team === 0 ? "#4a88a8" : "#a05040", 0.35);
-    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.35, 0.35, team === 0 ? "#3ee0c5" : "#ff4d2e", 0.55);
+    const concrete = mat("#5a6066", 0.95, 0.05);
+    const roof = mat(t >= 4 ? "#8a7a4a" : "#1e262c", 0.7, t >= 4 ? 0.35 : 0.2);
+    const dark = mat("#101418", 0.7, 0.28);
+    const glass = mat(team === 0 ? "#4a7a90" : "#905040", 0.18, 0.12, team === 0 ? "#3a6888" : "#904030", 0.45);
+    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.3, 0.3, team === 0 ? "#3ee0c5" : "#ff4d2e", 0.85);
     const steel = mat("#a8b0b6", 0.28, 0.78);
     const rust = mat("#5a4030", 0.75, 0.25);
     const padW = (kind === "wall" ? 8 : deep) * 1.12;
@@ -1354,25 +1287,74 @@ export class World3D {
     });
   }
 
+  private makeSelectMark(): THREE.Group {
+    const g = new THREE.Group();
+    const line = new THREE.MeshBasicMaterial({ color: "#3ee0c5", depthTest: false, transparent: true, opacity: 0.95 });
+    const corners = new THREE.Group();
+    corners.name = "corners";
+    for (const [sx, sz] of [
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+    ] as const) {
+      const c = new THREE.Group();
+      const a = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.35, 0.7), line.clone());
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.35, 5.2), line.clone());
+      a.position.set(sx * 1.8, 0, 0);
+      b.position.set(0, 0, sz * 1.8);
+      c.add(a, b);
+      c.position.set(sx * 8, 0, sz * 8);
+      corners.add(c);
+    }
+    g.add(corners);
+    const bar = new THREE.Group();
+    bar.name = "hp";
+    const bg = new THREE.Mesh(new THREE.PlaneGeometry(18, 2.2), new THREE.MeshBasicMaterial({ color: "#0a0c10", depthTest: false, transparent: true, opacity: 0.85 }));
+    const fill = new THREE.Mesh(new THREE.PlaneGeometry(16.6, 1.3), new THREE.MeshBasicMaterial({ color: "#3ee0c5", depthTest: false }));
+    fill.name = "fill";
+    fill.position.z = 0.05;
+    bar.add(bg, fill);
+    bar.position.y = 22;
+    g.add(bar);
+    return g;
+  }
+
   private syncRings(sim: Sim): void {
     const ids = sim.selected;
     while (this.rings.length < ids.length) {
-      const mesh = new THREE.Mesh(
-        new THREE.RingGeometry(10, 12.4, 32),
-        new THREE.MeshBasicMaterial({ color: "#3ee0c5", side: THREE.DoubleSide, transparent: true, opacity: 0.9 }),
-      );
-      mesh.rotation.x = -Math.PI / 2;
-      this.scene.add(mesh);
-      this.rings.push(mesh);
+      const mark = this.makeSelectMark();
+      this.scene.add(mark);
+      this.rings.push(mark);
     }
-    this.rings.forEach((mesh, i) => {
+    this.rings.forEach((mark, i) => {
       const unit = ids[i] ? sim.byId(ids[i]) : undefined;
-      mesh.visible = !!unit;
+      mark.visible = !!unit;
       if (!unit) return;
-      (mesh.material as THREE.MeshBasicMaterial).color.set(unit.team === 0 ? "#3ee0c5" : "#ff5a36");
-      const reach = DEFS[unit.kind].radius * 1.2;
-      mesh.scale.set(reach / 11, reach / 11, 1);
-      mesh.position.set(unit.x, (DEFS[unit.kind].air ? 40 : this.elevation(unit.x, unit.y)) + 0.55, unit.y);
+      const teamColor = unit.team === 0 ? "#3ee0c5" : "#ff5a36";
+      const reach = Math.max(10, DEFS[unit.kind].radius * 1.15);
+      const scale = reach / 11;
+      mark.position.set(unit.x, (DEFS[unit.kind].air ? 40 : this.elevation(unit.x, unit.y)) + 0.4, unit.y);
+      const corners = mark.getObjectByName("corners");
+      if (corners) corners.scale.set(scale, 1, scale);
+      corners?.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        if (mesh.isMesh && mesh.material && !Array.isArray(mesh.material)) (mesh.material as THREE.MeshBasicMaterial).color.set(teamColor);
+      });
+      const bar = mark.getObjectByName("hp");
+      if (bar) {
+        const ratio = Math.max(0.05, unit.hp / Math.max(1, unit.maxHp));
+        bar.position.y = (DEFS[unit.kind].building ? 28 : DEFS[unit.kind].air ? 14 : 20) * Math.max(1, scale * 0.55);
+        bar.scale.set(Math.max(0.7, scale), 1, 1);
+        bar.quaternion.copy(this.camera.quaternion);
+        const fill = bar.getObjectByName("fill") as THREE.Mesh | undefined;
+        if (fill) {
+          fill.scale.x = ratio;
+          fill.position.x = (ratio - 1) * 8.3;
+          const mat = fill.material as THREE.MeshBasicMaterial;
+          mat.color.set(ratio > 0.55 ? teamColor : ratio > 0.28 ? "#e8c56b" : "#ff5a36");
+        }
+      }
     });
   }
 
