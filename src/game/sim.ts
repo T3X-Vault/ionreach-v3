@@ -526,7 +526,6 @@ export class Sim {
     }
     this.separate();
     this.tickShots(dt);
-    this.tickDustStorm(dt);
     this.tickParticles(dt);
     this.updateFog();
     this.noteContact();
@@ -693,16 +692,16 @@ export class Sim {
         });
       } else if (!air && e.kind !== "rifle" && e.kind !== "rocket" && Math.random() < dt * 8) {
         this.tracks.push({ x: e.x, y: e.y, a: e.facing, life: 2.4 });
-      } else if ((e.kind === "rifle" || e.kind === "rocket" || e.kind === "watch" || e.kind === "patrol" || e.kind === "grenadier" || e.kind === "sergeant" || e.kind === "specops") && Math.random() < dt * 10) {
+      } else if ((e.kind === "rifle" || e.kind === "rocket") && Math.random() < dt * 6) {
         this.particles.push({
-          x: e.x + (Math.random() - 0.5) * 8,
-          y: e.y + (Math.random() - 0.5) * 8,
-          vx: (Math.random() - 0.2) * 28,
-          vy: (Math.random() - 0.5) * 18,
-          life: 0.7,
-          max: 0.7,
-          size: 5 + Math.random() * 4,
-          color: "rgba(170,120,70,0.7)",
+          x: e.x,
+          y: e.y,
+          vx: 0,
+          vy: 0,
+          life: 0.35,
+          max: 0.35,
+          size: 2.5,
+          color: "rgba(70,55,40,0.28)",
           kind: "dust",
         });
       }
@@ -880,31 +879,6 @@ export class Sim {
     this.shots = this.shots.filter((s) => s.life > 0);
   }
 
-  private tickDustStorm(dt: number): void {
-    const chapter = chapterById(this.chapterId);
-    if (!chapter.dust || this.winner !== null) return;
-    // Gust strength pulses so the storm reads as weather, not static haze.
-    const gust = 0.55 + 0.45 * Math.sin(this.time * 0.7) * Math.sin(this.time * 0.19);
-    const spawn = Math.floor(dt * (28 + gust * 36));
-    for (let i = 0; i < spawn; i++) {
-      if (this.particles.length > 220) break;
-      const band = Math.random();
-      const size = band < 0.35 ? 10 + Math.random() * 18 : 4 + Math.random() * 8;
-      const life = 1.4 + Math.random() * 2.2;
-      this.particles.push({
-        x: Math.random() * WORLD_W,
-        y: Math.random() * WORLD_H,
-        vx: 90 + gust * 140 + Math.random() * 60,
-        vy: (Math.random() - 0.5) * 36 - 8,
-        life,
-        max: life,
-        size,
-        color: band < 0.25 ? "rgba(210,150,90,0.55)" : band < 0.6 ? "rgba(180,110,60,0.5)" : "rgba(140,90,50,0.45)",
-        kind: "dust",
-      });
-    }
-  }
-
   private tickParticles(dt: number): void {
     for (const p of this.particles) {
       p.life -= dt;
@@ -912,13 +886,9 @@ export class Sim {
       p.y += p.vy * dt;
       if (p.kind === "smoke") p.vy -= 8 * dt;
       if (p.kind === "spark") p.vy += 30 * dt;
-      if (p.kind === "dust") {
-        p.vx += 12 * dt;
-        p.size += 2.5 * dt;
-      }
     }
     this.particles = this.particles.filter((p) => p.life > 0);
-    if (this.particles.length > 260) this.particles.splice(0, this.particles.length - 260);
+    if (this.particles.length > 180) this.particles.splice(0, this.particles.length - 180);
   }
 
   private hurt(e: Ent, dmg: number): void {

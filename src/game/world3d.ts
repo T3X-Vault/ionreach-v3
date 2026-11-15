@@ -222,7 +222,6 @@ export class World3D {
   private patterns: THREE.CanvasTexture[];
   private panels: THREE.CanvasTexture;
   private grit: THREE.CanvasTexture;
-  private dustVeil: THREE.Mesh;
 
   constructor(canvas: HTMLCanvasElement) {
     const small = Math.min(window.innerWidth || 1280, window.innerHeight || 800) < 760;
@@ -284,21 +283,6 @@ export class World3D {
     this.scene.add(this.boxMesh);
     this.viewGun = new THREE.Group();
     this.camera.add(this.viewGun);
-    this.dustVeil = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.4, 1.5),
-      new THREE.MeshBasicMaterial({
-        color: "#c48448",
-        transparent: true,
-        opacity: 0,
-        depthTest: false,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
-    );
-    this.dustVeil.position.z = -0.85;
-    this.dustVeil.renderOrder = 999;
-    this.dustVeil.visible = false;
-    this.camera.add(this.dustVeil);
     this.scene.add(this.camera);
     this.scene.fog = new THREE.Fog("#8aa0b0", 280, 2400);
     this.composer = new EffectComposer(this.renderer);
@@ -393,35 +377,12 @@ export class World3D {
     shadow.bottom = -640;
     shadow.updateProjectionMatrix();
     const fog = this.scene.fog as THREE.Fog;
-    const dusty = chapterById(sim.chapterId).dust;
     if (glance === "eye") {
-      fog.near = dusty ? 8 : 18;
-      fog.far = dusty ? 320 : 680;
-    } else if (dusty) {
-      fog.near = 80;
-      fog.far = 980 / Math.max(0.55, cam.z);
+      fog.near = 18;
+      fog.far = 680;
     } else {
       fog.near = 360;
       fog.far = 2600 / Math.max(0.55, cam.z);
-    }
-    const gust = 0.55 + 0.45 * Math.sin(sim.time * 0.7);
-    const storm = this.scene.getObjectByName("land")?.getObjectByName("dustStorm");
-    if (storm) {
-      storm.children.forEach((child, i) => {
-        const sheet = child as THREE.Mesh;
-        const mat = sheet.material as THREE.MeshBasicMaterial;
-        const phase = (sheet.userData.phase as number) ?? i;
-        sheet.position.x = ((sim.time * (70 + i * 18) + phase * 120) % (WORLD_W * 1.6)) - WORLD_W * 0.3;
-        sheet.position.y = 16 + i * 12 + Math.sin(sim.time * 1.2 + phase) * 4;
-        mat.opacity = 0.22 + gust * 0.28 + (i % 3) * 0.04;
-      });
-    }
-    this.dustVeil.visible = dusty && !cinematic;
-    if (dusty) {
-      const veilMat = this.dustVeil.material as THREE.MeshBasicMaterial;
-      veilMat.opacity = 0.16 + gust * 0.14;
-      this.dustVeil.position.x = Math.sin(sim.time * 0.55) * 0.04;
-      this.dustVeil.position.y = Math.cos(sim.time * 0.4) * 0.02;
     }
     this.viewGun.visible = glance === "eye" && !!eye;
     if (eye) this.dressViewGun(eye, sim);
@@ -535,7 +496,7 @@ export class World3D {
       (shader.uniforms.top.value as THREE.Color).set(chapter.sky[0]);
       (shader.uniforms.horizon.value as THREE.Color).set(chapter.sky[1]);
     }
-    (this.scene.fog as THREE.Fog).color.set(chapter.dust ? "#c48a52" : chapter.snow ? "#d5dde4" : chapter.sky[1]);
+    (this.scene.fog as THREE.Fog).color.set(chapter.sky[1]);
     const positions: number[] = [];
     const colors: number[] = [];
     const indices: number[] = [];
@@ -548,7 +509,7 @@ export class World3D {
       if (tile === 3) return -4.2;
       if (tile === 1) return 10 + n * 42 * (0.35 + chapter.peaks * 0.75);
       if (tile === 2) return 1.6 + n * 2.4;
-      return n * 5.4 * (chapter.snow ? 0.4 : 1);
+      return n * 5.4;
     };
     const sampleC = (c: number, r: number, target: THREE.Color) => {
       const cc = clamp(c, 0, COLS - 1);
@@ -556,11 +517,11 @@ export class World3D {
       const tile = sim.tiles[rr * COLS + cc];
       const n = sim.style[rr * COLS + cc] ?? 0;
       if (tile === 3) target.set("#1a4e62").lerp(new THREE.Color("#0e2a36"), n * 0.4);
-      else if (tile === 1) target.set(chapter.snow ? "#e4ebf0" : "#6a727a").lerp(new THREE.Color("#2a3038"), 0.4 - n * 0.15);
+      else if (tile === 1) target.set("#6a727a").lerp(new THREE.Color("#2a3038"), 0.4 - n * 0.15);
       else if (tile === 2) target.set("#1e6a62").lerp(new THREE.Color("#b8fff2"), 0.25 + n * 0.25);
       else {
         target.setRGB(chapter.ground[0] / 255, chapter.ground[1] / 255, chapter.ground[2] / 255);
-        target.lerp(new THREE.Color(chapter.snow ? "#f7fbfc" : "#1a2214"), chapter.snow ? 0.28 + n * 0.45 : n * 0.22);
+        target.lerp(new THREE.Color("#1a2214"), n * 0.22);
       }
     };
     const tint = new THREE.Color();
@@ -605,7 +566,7 @@ export class World3D {
         uniforms: {
           time: this.waterTime,
           color: { value: new THREE.Color(chapter.waterFill) },
-          deep: { value: new THREE.Color(chapter.snow ? "#6e8ea0" : "#041820") },
+          deep: { value: new THREE.Color("#041820") },
         },
         vertexShader:
           "uniform float time; varying float vH; varying vec3 vW; void main(){ vec3 p=position; float w=sin(p.x*0.03+time*1.15)*0.55+cos(p.y*0.026+time*0.8)*0.38; p.z+=w; vH=w; vec4 wp=modelMatrix*vec4(p,1.0); vW=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }",
@@ -625,36 +586,14 @@ export class World3D {
       transparent: true,
       depthWrite: false,
       vertexShader: "attribute float alpha; varying float vA; void main(){ vA=alpha; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
-      fragmentShader: chapter.dust
-        ? "varying float vA; void main(){ gl_FragColor=vec4(0.42,0.26,0.12,vA*0.92); }"
-        : "varying float vA; void main(){ gl_FragColor=vec4(0.01,0.014,0.02,vA); }",
+      fragmentShader: "varying float vA; void main(){ gl_FragColor=vec4(0.01,0.014,0.02,vA); }",
     });
     land.add(this.fogMesh);
-    if (chapter.dust) {
-      const storm = new THREE.Group();
-      storm.name = "dustStorm";
-      const gritMat = new THREE.MeshBasicMaterial({
-        color: "#d2a066",
-        transparent: true,
-        opacity: 0.22,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      });
-      for (let i = 0; i < 7; i++) {
-        const sheet = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_W * 1.4, 180 + i * 28), gritMat.clone());
-        sheet.rotation.x = -Math.PI / 2.4;
-        sheet.position.set(WORLD_W * 0.5, 18 + i * 14, WORLD_H * (0.15 + i * 0.12));
-        sheet.userData.dustSheet = true;
-        sheet.userData.phase = i * 1.7;
-        storm.add(sheet);
-      }
-      land.add(storm);
-    }
-    this.plant(sim, land, chapter.canopy, chapter.trunk, chapter.snow);
+    this.plant(sim, land, chapter.canopy, chapter.trunk);
     this.scene.add(land);
   }
 
-  private plant(sim: Sim, land: THREE.Group, canopy: string, trunk: string, snow: boolean): void {
+  private plant(sim: Sim, land: THREE.Group, canopy: string, trunk: string): void {
     let trees = 0;
     let rocks = 0;
     let crystals = 0;
@@ -666,13 +605,13 @@ export class World3D {
       if (sim.tiles[i] === 0 && !sim.flora[i] && i % 5 === 0) grass++;
     }
     const trunkMesh = new THREE.InstancedMesh(CYL, mat(trunk, 0.86, 0.04), Math.max(1, trees));
-    const leafMat = mat(snow ? "#e4eee8" : canopy, 0.78, 0.02);
-    const leafHi = mat(snow ? "#f7fbf8" : new THREE.Color(canopy).lerp(new THREE.Color("#e4f2c8"), 0.4), 0.7, 0.02);
+    const leafMat = mat(canopy, 0.78, 0.02);
+    const leafHi = mat(new THREE.Color(canopy).lerp(new THREE.Color("#e4f2c8"), 0.4), 0.7, 0.02);
     const leafMesh = new THREE.InstancedMesh(CONE, leafMat, Math.max(1, trees));
     const crownMesh = new THREE.InstancedMesh(CONE, leafHi, Math.max(1, trees));
-    const rockMesh = new THREE.InstancedMesh(ROCK, mat(snow ? "#d5dee6" : "#5c656e", 0.92, 0.08), Math.max(1, rocks));
+    const rockMesh = new THREE.InstancedMesh(ROCK, mat("#5c656e", 0.92, 0.08), Math.max(1, rocks));
     const gemMesh = new THREE.InstancedMesh(CYL, mat("#eafff8", 0.15, 0.15, "#3ee0c5", 1.1), Math.max(1, crystals));
-    const grassColor = snow ? "#eef3ea" : new THREE.Color(canopy).lerp(new THREE.Color("#d7e6a4"), 0.55);
+    const grassColor = new THREE.Color(canopy).lerp(new THREE.Color("#d7e6a4"), 0.55);
     const grassMesh = new THREE.InstancedMesh(CONE, mat(grassColor, 0.95, 0.02), Math.max(1, grass));
     trunkMesh.castShadow = true;
     leafMesh.castShadow = true;
@@ -747,12 +686,11 @@ export class World3D {
 
   private syncFog(sim: Sim, cinematic: boolean): void {
     const data = this.fogAlpha.array as Float32Array;
-    const dusty = chapterById(sim.chapterId).dust;
     for (let r = 0; r <= ROWS; r++) {
       for (let c = 0; c <= COLS; c++) {
         const seen = sim.explored[clamp(r, 0, ROWS - 1) * COLS + clamp(c, 0, COLS - 1)];
         const live = sim.visible[clamp(r, 0, ROWS - 1) * COLS + clamp(c, 0, COLS - 1)];
-        data[r * (COLS + 1) + c] = cinematic ? 0 : live ? (dusty ? 0.12 : 0) : seen ? (dusty ? 0.55 : 0.42) : dusty ? 0.95 : 0.9;
+        data[r * (COLS + 1) + c] = cinematic ? 0 : live ? 0 : seen ? 0.42 : 0.9;
       }
     }
     this.fogAlpha.needsUpdate = true;
@@ -1127,157 +1065,208 @@ export class World3D {
     const span = Math.max(kind === "wall" ? 18 : 20, def.fw * TILE * (kind === "wall" ? 0.62 : 0.72));
     const deep = Math.max(kind === "wall" ? 7 : 16, def.fh * TILE * 0.68);
     const t = clamp(tier, 1, 4);
-    const grow = 0.78 + t * 0.18;
-    const tint = new THREE.Color(["#c9d0d4", "#46545c", "#d5deda", "#f6f1e6"][t - 1]);
-    if (team === 1) tint.lerp(new THREE.Color("#c49080"), 0.42);
+    const grow = 0.82 + t * 0.16;
+    const tint = new THREE.Color(["#8a9298", "#5a646c", "#9aa4aa", "#b8b0a0"][t - 1]);
+    if (team === 1) tint.lerp(new THREE.Color("#8a5048"), 0.38);
     const wall = paintMat(tint, this.panels, t);
-    const roof = mat(t >= 4 ? "#e8c56b" : t >= 3 ? "#9aabb4" : "#2a3238", 0.38, t >= 4 ? 0.66 : 0.42, t >= 4 ? "#e8c56b" : "#000", t >= 4 ? 0.16 : 0);
-    const dark = mat("#171d22", 0.5, 0.42);
-    const glass = mat(team === 0 ? "#c5e8ff" : "#ffc8b8", 0.05, 0.08, team === 0 ? "#8fd4ff" : "#ff8d70", 0.6);
-    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.28, 0.4, team === 0 ? "#3ee0c5" : "#ff4d2e", 0.9);
-    const steel = mat("#d5dee6", 0.2, 0.82);
+    const concrete = mat("#6a7076", 0.92, 0.08);
+    const roof = mat(t >= 4 ? "#9a8a5a" : "#2e363c", 0.55, t >= 4 ? 0.45 : 0.28);
+    const dark = mat("#14181c", 0.62, 0.35);
+    const glass = mat(team === 0 ? "#6a9ab0" : "#a07060", 0.12, 0.15, team === 0 ? "#4a88a8" : "#a05040", 0.35);
+    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.35, 0.35, team === 0 ? "#3ee0c5" : "#ff4d2e", 0.55);
+    const steel = mat("#a8b0b6", 0.28, 0.78);
+    const rust = mat("#5a4030", 0.75, 0.25);
+    const padW = (kind === "wall" ? 8 : deep) * 1.12;
+    piece(group, BOX, concrete, 0, 0.35, 0, span * 1.14, 0.7, padW);
+    piece(group, BOX, dark, 0, 0.08, 0, span * 1.2, 0.2, padW * 1.06, false);
+    // curb / sandbag ring
+    for (const side of [-1, 1] as const) {
+      piece(group, BOX, rust, 0, 0.95, side * padW * 0.48, span * 0.9, 0.55, 0.85, false);
+      piece(group, BOX, rust, side * span * 0.52, 0.95, 0, 0.85, 0.55, padW * 0.7, false);
+    }
+    const vents = (y: number, z: number, count: number) => {
+      for (let i = 0; i < count; i++) {
+        const x = -span * 0.28 + i * (span * 0.56) / Math.max(1, count - 1);
+        piece(group, BOX, dark, x, y, z, 2.4, 0.55, 1.6, false);
+        piece(group, BOX, steel, x, y + 0.35, z, 1.8, 0.15, 1.1, false);
+      }
+    };
     const windows = (y: number, z: number, w: number, count: number) => {
       for (let i = 0; i < count; i++) {
         const x = count === 1 ? 0 : -w * 0.36 + (i * w * 0.72) / (count - 1);
-        piece(group, BOX, glass, x, y, z, Math.min(4.2, w / count), 2.2 + t * 0.35, 0.35, false);
+        piece(group, BOX, dark, x, y, z, Math.min(3.6, w / count) + 0.35, 2.6 + t * 0.25, 0.45, false);
+        piece(group, BOX, glass, x, y, z + 0.12, Math.min(3.2, w / count), 2.1 + t * 0.25, 0.28, false);
       }
     };
-    piece(group, BOX, dark, 0, 0.45, 0, span * 1.08, 0.9, (kind === "wall" ? 8 : deep) * 1.05);
+    const pipes = (x: number, y0: number, y1: number, z: number) => {
+      piece(group, CYL, rust, x, (y0 + y1) / 2, z, 0.45, Math.abs(y1 - y0), 0.45, false);
+      piece(group, BOX, steel, x, y1, z, 1.1, 0.35, 1.1, false);
+    };
     if (kind === "wall") {
-      const h = 7.5 * grow;
-      piece(group, BOX, wall, 0, h * 0.5 + 0.6, 0, span * 0.96, h, 3.4 + t * 0.4);
-      piece(group, BOX, accent, 0, h * 0.75, 1.9, span * 0.82, 0.32, 0.25, false);
-      for (let i = 0; i < 5; i++) piece(group, BOX, roof, -span * 0.38 + i * span * 0.19, h + 1.4, 0, 2.6, 2.4, 3.2);
-      if (t >= 3) piece(group, BOX, steel, 0, h * 0.45, 2.1, span * 0.7, 0.3, 0.2, false);
+      const h = 8.2 * grow;
+      piece(group, BOX, concrete, 0, h * 0.22, 0, span * 0.98, h * 0.4, 4.2);
+      piece(group, BOX, wall, 0, h * 0.55, 0, span * 0.94, h * 0.55, 3.6);
+      piece(group, BOX, dark, 0, h * 0.72, 2.05, span * 0.88, 0.35, 0.4, false);
+      for (let i = 0; i < 6; i++) {
+        piece(group, BOX, concrete, -span * 0.4 + i * span * 0.16, h + 0.9, 0, 2.2, 1.8, 3.8);
+        piece(group, BOX, steel, -span * 0.4 + i * span * 0.16, h + 1.9, 0.2, 1.6, 0.25, 2.8, false);
+      }
+      if (t >= 2) piece(group, BOX, steel, 0, h * 0.4, 2.3, span * 0.75, 0.2, 0.35, false);
+      if (t >= 3) piece(group, BOX, accent, 0, h * 0.85, 2.15, span * 0.55, 0.18, 0.22, false);
       return null;
     }
     if (kind === "spire") {
-      const h = 34 * grow;
-      piece(group, CYL, wall, 0, h * 0.22, 0, span * 0.32, h * 0.4, span * 0.32);
-      piece(group, CYL, wall, 0, h * 0.5, 0, span * 0.22, h * 0.28, span * 0.22);
-      piece(group, CYL, dark, 0, h * 0.7, 0, span * 0.12, h * 0.18, span * 0.12);
-      piece(group, CYL, accent, 0, h * 0.42, 0, span * 0.07, h * 0.16, span * 0.07, false);
-      piece(group, SPHERE, accent, 0, h * 0.62, 0, 2.4 + t, 2.4 + t, 2.4 + t, false);
-      piece(group, CYL, steel, 0, h * 0.82 + t * 4, 0, 0.45, 18 + t * 7, 0.45, false);
-      if (t >= 2) {
-        for (const s of [-1, 1]) {
-          piece(group, BOX, dark, s * span * 0.24, h * 0.16, 0, span * 0.1, h * 0.28, span * 0.1);
-          piece(group, BOX, dark, 0, h * 0.16, s * span * 0.24, span * 0.1, h * 0.28, span * 0.1);
-        }
+      const h = 36 * grow;
+      piece(group, BOX, concrete, 0, 2.2, 0, span * 0.7, 4.2, span * 0.7);
+      piece(group, BOX, wall, 0, h * 0.22, 0, span * 0.52, h * 0.32, span * 0.52);
+      piece(group, BOX, dark, 0, h * 0.42, 0, span * 0.42, h * 0.12, span * 0.42);
+      piece(group, BOX, wall, 0, h * 0.58, 0, span * 0.34, h * 0.28, span * 0.34);
+      piece(group, BOX, glass, 0, h * 0.58, span * 0.18, span * 0.28, h * 0.2, 0.4, false);
+      piece(group, BOX, glass, span * 0.18, h * 0.58, 0, 0.4, h * 0.2, span * 0.28, false);
+      piece(group, BOX, dark, 0, h * 0.78, 0, span * 0.28, h * 0.12, span * 0.28);
+      piece(group, CYL, steel, 0, h * 0.92 + t * 3, 0, 0.55, 14 + t * 5, 0.55, false);
+      piece(group, BOX, accent, 0, h * 0.35, span * 0.27, span * 0.22, 0.35, 0.25, false);
+      for (const s of [-1, 1] as const) {
+        piece(group, BOX, steel, s * span * 0.28, h * 0.3, 0, 0.55, h * 0.45, 0.55, false);
+        piece(group, BOX, steel, 0, h * 0.3, s * span * 0.28, 0.55, h * 0.45, 0.55, false);
       }
-      if (t >= 3) piece(group, TORUS, steel, 0, h * 0.78, 0, span * 0.14, span * 0.14, 0.8).rotation.x = Math.PI / 2;
-      if (t >= 4) piece(group, CYL, roof, 0, h * 0.9, 0, span * 0.16, 1.4, span * 0.16);
-      windows(h * 0.24, span * 0.32, span * 0.4, 3);
+      if (t >= 2) vents(h * 0.48, -span * 0.22, 2);
+      if (t >= 3) piece(group, TORUS, steel, 0, h * 0.86, 0, span * 0.16, span * 0.16, 0.55).rotation.x = Math.PI / 2;
+      if (t >= 4) piece(group, BOX, roof, 0, h * 0.88, 0, span * 0.22, 0.45, span * 0.22);
+      windows(h * 0.2, span * 0.27, span * 0.35, 3);
       return null;
     }
     if (kind === "relay") {
-      const h = 14 * grow;
-      piece(group, BOX, wall, 0, h * 0.42, 0, span * 0.78, h * 0.75, deep * 0.62);
-      piece(group, BOX, roof, 0, h * 0.84, 0, span * 0.88, 1.05, deep * 0.72);
-      windows(h * 0.42, deep * 0.32, span * 0.5, 3);
-      for (let i = 0; i < t; i++) {
-        const x = (i - (t - 1) / 2) * span * 0.2;
-        piece(group, CYL, dark, x, h + 3.2, -deep * 0.05, 0.32, 5.5, 0.32, false);
-        piece(group, CYL, steel, x, h + 6.2, 0.6, 2.8 + t * 0.25, 0.28, 2.8 + t * 0.25).rotation.x = 0.85;
+      const h = 11 * grow;
+      piece(group, BOX, wall, 0, h * 0.4, 0, span * 0.72, h * 0.7, deep * 0.55);
+      piece(group, BOX, roof, 0, h * 0.8, 0, span * 0.82, 0.85, deep * 0.65);
+      piece(group, BOX, dark, 0, h * 0.95, 0, span * 0.5, 0.35, deep * 0.35);
+      windows(h * 0.4, deep * 0.29, span * 0.45, 3);
+      vents(h * 0.85, -deep * 0.2, 2);
+      for (let i = 0; i < Math.max(1, t); i++) {
+        const x = (i - (Math.max(1, t) - 1) / 2) * span * 0.18;
+        piece(group, CYL, steel, x, h + 4.5, -deep * 0.05, 0.28, 8, 0.28, false);
+        const dish = piece(group, CYL, steel, x, h + 8.2, 0.8, 2.4 + t * 0.2, 0.22, 2.4 + t * 0.2);
+        dish.rotation.x = 0.95;
       }
-      piece(group, BOX, accent, 0, 2.3, deep * 0.33, span * 0.36, 0.4, 0.28, false);
+      piece(group, BOX, accent, 0, 1.9, deep * 0.3, span * 0.28, 0.35, 0.22, false);
+      pipes(-span * 0.32, 1.2, h * 0.7, deep * 0.2);
       return null;
     }
     if (kind === "refinery") {
-      const h = 16 * grow;
-      piece(group, BOX, wall, 0, h * 0.38, 0, span * 0.82, h * 0.68, deep * 0.7);
-      piece(group, BOX, roof, 0, h * 0.76, 0, span * 0.92, 1.15, deep * 0.8);
-      const stacks = t >= 3 ? 2 : 1;
-      for (let i = 0; i < stacks; i++) {
-        const x = -span * 0.22 + i * 7;
-        piece(group, CYL, dark, x, h * 0.85, -deep * 0.08, 2.1, h * 0.75, 2.1);
-        piece(group, CYL, accent, x, h * 1.2, -deep * 0.08, 2.5, 0.55, 2.5, false);
+      const h = 14 * grow;
+      piece(group, BOX, wall, -span * 0.12, h * 0.35, 0, span * 0.7, h * 0.6, deep * 0.62);
+      piece(group, BOX, roof, -span * 0.12, h * 0.7, 0, span * 0.78, 0.9, deep * 0.7);
+      piece(group, BOX, dark, -span * 0.12, 2.1, deep * 0.28, span * 0.42, 1.4, 2.8);
+      const tanks = 1 + (t >= 2 ? 1 : 0) + (t >= 4 ? 1 : 0);
+      for (let i = 0; i < tanks; i++) {
+        const x = span * 0.28 + i * 5.5;
+        piece(group, CYL, steel, x, h * 0.55, -deep * 0.05, 3.2, h * 0.95, 3.2);
+        piece(group, CYL, dark, x, h * 1.05, -deep * 0.05, 3.5, 0.7, 3.5, false);
+        piece(group, CYL, accent, x, h * 0.35, -deep * 0.05, 3.4, 0.35, 3.4, false);
       }
-      piece(group, CONE, mat("#123832", 0.4, 0.3, "#3ee0c5", 0.4), span * 0.24, h * 0.5, deep * 0.02, 4.2, h * 0.5, 4.2);
-      piece(group, BOX, dark, 0, 2.2, deep * 0.28, span * 0.5, 1.1, 2.4);
-      windows(h * 0.4, deep * 0.36, span * 0.4, 3);
+      piece(group, BOX, steel, span * 0.1, h * 0.55, deep * 0.05, span * 0.55, 0.35, 1.2, false);
+      pipes(-span * 0.35, 1.4, h * 0.65, -deep * 0.22);
+      vents(h * 0.72, -deep * 0.28, 2);
+      windows(h * 0.38, deep * 0.33, span * 0.35, 2);
+      piece(group, BOX, accent, -span * 0.12, 1.85, deep * 0.34, span * 0.22, 0.3, 0.2, false);
       return null;
     }
     if (kind === "barracks") {
-      const h = 12 * grow;
-      piece(group, BOX, wall, 0, h * 0.4, 0, span, h * 0.7, deep * 0.55);
-      const roofMesh = new THREE.Mesh(roofPrism(deep * 0.62, 5.5 + t * 1.4, span * 1.02), roof);
-      roofMesh.rotation.y = Math.PI / 2;
-      roofMesh.position.y = h * 0.74;
-      roofMesh.castShadow = true;
-      roofMesh.receiveShadow = true;
-      group.add(roofMesh);
-      windows(h * 0.42, deep * 0.29, span * 0.72, 4 + (t > 2 ? 1 : 0));
-      piece(group, BOX, accent, 0, 2.15, deep * 0.3, span * 0.28, 0.45, 0.3, false);
+      const h = 11 * grow;
+      piece(group, BOX, wall, 0, h * 0.38, 0, span * 0.95, h * 0.68, deep * 0.52);
+      piece(group, BOX, roof, 0, h * 0.78, 0, span * 1.02, 1.1, deep * 0.6);
+      piece(group, BOX, dark, 0, h * 0.78, deep * 0.05, span * 0.2, 0.35, deep * 0.55, false);
+      windows(h * 0.4, deep * 0.28, span * 0.7, 5);
+      piece(group, BOX, dark, 0, 2.4, deep * 0.28, span * 0.22, 4.2, 0.5);
+      piece(group, BOX, steel, 0, 1.2, deep * 0.32, span * 0.18, 0.25, 1.4, false);
+      piece(group, BOX, accent, 0, 4.6, deep * 0.3, span * 0.16, 0.35, 0.22, false);
+      vents(h * 0.82, -deep * 0.18, 3);
       if (t >= 2) {
-        piece(group, BOX, dark, span * 0.4, h * 0.7, -deep * 0.12, 5.2, h * 1.2, 5.2);
-        piece(group, BOX, roof, span * 0.4, h * 1.35, -deep * 0.12, 6.6, 1, 6.6);
+        piece(group, BOX, wall, span * 0.42, h * 0.55, -deep * 0.05, 7.5, h * 0.95, 7.5);
+        piece(group, BOX, roof, span * 0.42, h * 1.1, -deep * 0.05, 8.4, 0.7, 8.4);
+        piece(group, CYL, steel, span * 0.42, h * 1.5, -deep * 0.05, 0.2, 5.5, 0.2, false);
       }
-      if (t >= 3) piece(group, CYL, accent, span * 0.4, h * 1.75, -deep * 0.12, 0.1, 4.2, 0.1, false);
-      if (t >= 4) piece(group, BOX, roof, 0, h * 0.95, deep * 0.3, span * 0.46, 0.35, 0.35, false);
+      if (t >= 3) pipes(-span * 0.4, 1.2, h * 0.7, deep * 0.15);
       return null;
     }
     if (kind === "bay") {
-      const h = 15 * grow;
-      piece(group, BOX, wall, 0, h * 0.46, 0, span, h * 0.82, deep * 0.78);
-      piece(group, BOX, roof, 0, h * 0.92, -deep * 0.04, span * 1.04, 1.25, deep * 0.9);
-      piece(group, BOX, dark, 0, h * 0.28, deep * 0.32, span * 0.42, h * 0.42, 0.7);
-      piece(group, BOX, steel, 0, h + 1.6, 0, 0.9, 3.2, deep * 0.62, false);
-      piece(group, BOX, steel, span * 0.12, h + 3.3, 0, span * 0.28, 0.45, 0.55, false);
-      if (t >= 3) piece(group, BOX, dark, -span * 0.38, h * 0.35, 0, span * 0.18, h * 0.6, deep * 0.45);
-      if (t >= 4) piece(group, BOX, accent, 0, 2.4, deep * 0.42, span * 0.5, 0.35, 0.28, false);
-      windows(h * 0.62, deep * 0.4, span * 0.5, 3);
+      const h = 16 * grow;
+      piece(group, BOX, wall, 0, h * 0.45, -deep * 0.05, span * 0.98, h * 0.82, deep * 0.78);
+      piece(group, BOX, roof, 0, h * 0.9, -deep * 0.05, span * 1.08, 1.15, deep * 0.88);
+      // hangar door panels
+      for (let i = 0; i < 4; i++) {
+        piece(group, BOX, dark, -span * 0.28 + i * span * 0.18, h * 0.32, deep * 0.38, span * 0.15, h * 0.55, 0.45);
+        piece(group, BOX, steel, -span * 0.28 + i * span * 0.18, h * 0.32, deep * 0.42, span * 0.12, h * 0.48, 0.2, false);
+      }
+      piece(group, BOX, steel, 0, h + 1.4, 0, 1.1, 2.8, deep * 0.55, false);
+      piece(group, BOX, steel, span * 0.2, h + 2.8, 0, span * 0.35, 0.4, 0.55, false);
+      vents(h * 0.95, -deep * 0.35, 3);
+      windows(h * 0.7, deep * 0.4, span * 0.55, 4);
+      if (t >= 2) piece(group, BOX, wall, -span * 0.4, h * 0.35, deep * 0.05, span * 0.2, h * 0.55, deep * 0.4);
+      if (t >= 3) pipes(span * 0.42, 1.4, h * 0.75, -deep * 0.3);
+      if (t >= 4) piece(group, BOX, accent, 0, 2.2, deep * 0.45, span * 0.4, 0.3, 0.22, false);
       return null;
     }
     if (kind === "strip") {
-      piece(group, BOX, dark, 0, 0.85, 0, span * 1.45, 0.55, deep * 1.25);
-      piece(group, BOX, accent, 0, 1.25, 0, span * 1.2, 0.12, 1.5, false);
-      for (let i = -2; i <= 2; i++) piece(group, BOX, mat("#f4f7f8", 0.5, 0.1), i * span * 0.22, 1.22, 0, span * 0.06, 0.08, deep * 0.2, false);
-      const towerH = 12 * grow;
-      piece(group, BOX, wall, span * 0.48, towerH * 0.45, -deep * 0.32, 9, towerH, 9);
-      piece(group, BOX, glass, span * 0.48, towerH * 0.72, -deep * 0.32 + 4.6, 6.2, 2.6, 0.35, false);
-      piece(group, CYL, steel, span * 0.48, towerH + t * 2, -deep * 0.32, 0.35, 7 + t * 2.5, 0.35, false);
-      if (t >= 2) piece(group, CYL, steel, span * 0.48, towerH + 2, -deep * 0.32, 3.2 + t * 0.3, 0.22, 3.2 + t * 0.3).rotation.x = 0.7;
-      if (t >= 4) piece(group, BOX, roof, span * 0.48, towerH + 0.4, -deep * 0.32, 11, 0.5, 11);
+      piece(group, BOX, concrete, 0, 0.7, 0, span * 1.5, 0.5, deep * 1.3);
+      piece(group, BOX, dark, 0, 1.05, 0, span * 1.35, 0.2, deep * 0.35);
+      for (let i = -3; i <= 3; i++) piece(group, BOX, mat("#e8ecee", 0.55, 0.08), i * span * 0.18, 1.15, 0, span * 0.05, 0.08, deep * 0.18, false);
+      const towerH = 13 * grow;
+      piece(group, BOX, wall, span * 0.5, towerH * 0.42, -deep * 0.28, 10, towerH, 10);
+      piece(group, BOX, glass, span * 0.5, towerH * 0.72, -deep * 0.28 + 5.1, 7.2, 3.2, 0.4, false);
+      piece(group, BOX, roof, span * 0.5, towerH + 0.5, -deep * 0.28, 11.5, 0.7, 11.5);
+      piece(group, CYL, steel, span * 0.5, towerH + 4 + t * 1.5, -deep * 0.28, 0.32, 8 + t * 2, 0.32, false);
+      if (t >= 2) {
+        const dish = piece(group, CYL, steel, span * 0.5, towerH + 2.2, -deep * 0.28, 3.4 + t * 0.25, 0.2, 3.4 + t * 0.25);
+        dish.rotation.x = 0.75;
+      }
+      piece(group, BOX, accent, 0, 1.2, 0, span * 1.1, 0.1, 1.2, false);
       return null;
     }
     if (kind === "silo") {
-      const h = 18 * grow;
+      const h = 17 * grow;
       const n = 2 + (t >= 3 ? 1 : 0) + (t >= 4 ? 1 : 0);
       for (let i = 0; i < n; i++) {
-        const x = (i - (n - 1) / 2) * 8.5;
-        piece(group, CYL, wall, x, h * 0.45, 0, 3.4, h, 3.4);
-        piece(group, CYL, t >= 3 ? accent : roof, x, h + 0.4, 0, 3.8, 1.1, 3.8, false);
+        const x = (i - (n - 1) / 2) * 9;
+        piece(group, CYL, wall, x, h * 0.45, 0, 3.6, h, 3.6);
+        piece(group, CYL, steel, x, h * 0.2, 0, 3.85, 0.55, 3.85, false);
+        piece(group, CYL, dark, x, h + 0.5, 0, 3.9, 1.0, 3.9, false);
+        piece(group, CYL, accent, x, h * 0.55, 0, 3.75, 0.3, 3.75, false);
+        pipes(x + 2.2, 1.5, h * 0.7, 2.2);
       }
-      if (t >= 2) piece(group, BOX, dark, 0, 3, deep * 0.22, n * 8, 2.2, 3);
+      piece(group, BOX, concrete, 0, 1.4, deep * 0.2, n * 9.5, 2.4, 4.5);
+      piece(group, BOX, steel, 0, 3.2, deep * 0.2, n * 8.5, 0.35, 1.4, false);
       return null;
     }
     if (kind === "turret" || kind === "cannon" || kind === "sam") {
-      const h = (kind === "cannon" ? 7 : 5.5) * grow;
-      piece(group, CYL, wall, 0, h * 0.45, 0, span * 0.28, h, span * 0.28);
-      piece(group, CYL, dark, 0, h + 0.3, 0, span * 0.34, 1.2, span * 0.34);
+      const h = (kind === "cannon" ? 7.5 : 6) * grow;
+      piece(group, BOX, concrete, 0, 1.1, 0, span * 0.55, 2.0, span * 0.55);
+      piece(group, CYL, wall, 0, h * 0.5, 0, span * 0.26, h, span * 0.26);
+      piece(group, CYL, steel, 0, h * 0.35, 0, span * 0.29, 0.45, span * 0.29, false);
+      piece(group, CYL, dark, 0, h + 0.4, 0, span * 0.32, 1.3, span * 0.32);
       const gun = new THREE.Group();
-      gun.position.set(0, h + 1.5, 0);
+      gun.position.set(0, h + 1.6, 0);
       if (kind === "sam") {
-        piece(gun, BOX, dark, 0, 0.8, 0, 3.6, 1.3, 5.4);
-        for (const z of [-1.6, 1.6]) piece(gun, CYL, steel, 2.2, 1.6, z, 0.48, 7.5 + t * 1.4, 0.48).rotation.z = -1.15;
-        if (t >= 3) piece(gun, CYL, steel, 2.2, 2.8, 0, 0.4, 6 + t, 0.4).rotation.z = -1.15;
+        piece(gun, BOX, dark, 0, 0.9, 0, 4.2, 1.5, 5.8);
+        for (const z of [-1.7, 0, 1.7]) piece(gun, CYL, steel, 2.4, 1.5, z, 0.42, 8 + t * 1.2, 0.42).rotation.z = -1.1;
       } else {
-        const len = (kind === "cannon" ? 18 : 10) + t * 2.2;
-        const thick = kind === "cannon" ? 0.72 : 0.48;
-        piece(gun, BOX, dark, -0.5, 0.9, 0, 4.8, 2.1, 4.4);
-        piece(gun, CYL, steel, len * 0.42, 1.15, 0, thick, len, thick).rotation.z = -Math.PI / 2;
-        if (t >= 3 && kind === "cannon") piece(gun, CYL, steel, len * 0.32, 2.3, 0, 0.38, len * 0.65, 0.38).rotation.z = -Math.PI / 2;
-        if (t >= 4) piece(gun, BOX, mat("#e8c56b", 0.3, 0.6, "#e8c56b", 0.2), 0, 2.3, 0, 3.2, 0.2, 2.4, false);
+        const len = (kind === "cannon" ? 20 : 11) + t * 2;
+        const thick = kind === "cannon" ? 0.78 : 0.5;
+        piece(gun, BOX, dark, -0.6, 1.0, 0, 5.2, 2.4, 4.8);
+        piece(gun, CYL, steel, len * 0.4, 1.2, 0, thick, len, thick).rotation.z = -Math.PI / 2;
+        piece(gun, CYL, dark, len * 0.78, 1.2, 0, thick * 1.25, 1.2, thick * 1.25, false).rotation.z = -Math.PI / 2;
+        if (t >= 3 && kind === "cannon") piece(gun, CYL, steel, len * 0.28, 2.4, 0, 0.4, len * 0.55, 0.4).rotation.z = -Math.PI / 2;
       }
       group.add(gun);
       return gun;
     }
-    const h = 14 * grow;
-    piece(group, BOX, wall, 0, h * 0.42, 0, span * 0.8, h * 0.75, deep * 0.75);
-    piece(group, BOX, roof, 0, h * 0.84, 0, span * 0.9, 1.2, deep * 0.85);
-    windows(h * 0.45, deep * 0.39, span * 0.45, 3);
-    piece(group, BOX, accent, 0, 2.2, deep * 0.4, span * 0.36, 0.4, 0.25, false);
+    const h = 12 * grow;
+    piece(group, BOX, wall, 0, h * 0.4, 0, span * 0.82, h * 0.72, deep * 0.7);
+    piece(group, BOX, roof, 0, h * 0.8, 0, span * 0.92, 1.0, deep * 0.8);
+    windows(h * 0.42, deep * 0.37, span * 0.45, 3);
+    vents(h * 0.85, -deep * 0.25, 2);
+    piece(group, BOX, accent, 0, 2.0, deep * 0.38, span * 0.28, 0.35, 0.22, false);
     return null;
   }
 
@@ -1337,15 +1326,13 @@ export class World3D {
       mesh.visible = !!p && i < 220;
       if (!p || i >= 220) return;
       const a = Math.max(0, p.life / p.max);
-      const dust = p.kind === "dust";
-      mesh.position.set(p.x, this.elevation(p.x, p.y) + (dust ? 4 + (1 - a) * 18 : (1 - a) * (p.kind === "smoke" ? 22 : 8)), p.y);
-      mesh.scale.setScalar(p.size * (dust ? 1.35 + (1 - a) * 1.1 : p.kind === "smoke" ? 1.6 : a) * 0.85);
+      mesh.position.set(p.x, this.elevation(p.x, p.y) + (1 - a) * (p.kind === "smoke" ? 22 : 8), p.y);
+      mesh.scale.setScalar(p.size * (p.kind === "smoke" ? 1.6 : a) * 0.85);
       const material = mesh.material as THREE.MeshStandardMaterial;
-      material.color.set(dust ? "#c9955a" : p.color);
-      material.emissive.set(p.kind === "smoke" ? "#000" : dust ? "#8a5a28" : p.color);
-      material.opacity = dust ? a * 0.72 : p.kind === "smoke" ? a * 0.4 : a;
+      material.color.set(p.color);
+      material.emissive.set(p.kind === "smoke" ? "#000" : p.color);
+      material.opacity = p.kind === "smoke" ? a * 0.4 : a;
       material.transparent = true;
-      material.depthWrite = false;
     });
   }
 

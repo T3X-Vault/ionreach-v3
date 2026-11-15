@@ -22,7 +22,6 @@ export interface Chapter {
   trunk: string;
   waterFill: string;
   snow: boolean;
-  /** Red-dirt / arid theaters get a blowing dust storm overlay. */
   dust: boolean;
 }
 
@@ -72,7 +71,7 @@ function arc(countryId: string, skin: Skin, rows: Row[]): Chapter[] {
 const usa = arc("usa", {
   country: "United States",
   water: "river", waterAmt: 0.7, forest: 0.62, peaks: 0.7, salt: 2.1,
-  sky: ["#1c3348", "#8aa4b4"], ground: [92, 108, 78], canopy: "#2f5a3a", trunk: "#4a3424", waterFill: "#1a5870", snow: true,
+  sky: ["#1c3348", "#8aa4b4"], ground: [92, 108, 78], canopy: "#2f5a3a", trunk: "#4a3424", waterFill: "#1a5870", snow: false,
   dust: false,
 }, [
   { theater: "Cascade Reach", line: "Snow, cedar, and a ford the tanks have to take.", brief: "Helion drops west of the Cascade. Ionite sits under the snow, and the river is the first wall.", hudson: "The ford is ours.", video: "usa" },
@@ -100,7 +99,7 @@ const usa = arc("usa", {
 const russia = arc("russia", {
   country: "Russia",
   water: "river", waterAmt: 0.55, forest: 0.42, peaks: 0.9, salt: 5.4,
-  sky: ["#243246", "#c5d0d8"], ground: [150, 156, 150], canopy: "#6d7c68", trunk: "#5c4030", waterFill: "#8ea8b8", snow: true,
+  sky: ["#243246", "#c5d0d8"], ground: [150, 156, 150], canopy: "#6d7c68", trunk: "#5c4030", waterFill: "#8ea8b8", snow: false,
   dust: false,
 }, [
   { theater: "White Meridian", line: "A frozen cut, birch, and a ridge that does not forgive.", brief: "White Meridian. The river is a sheet of ice and the birch is thin cover.", hudson: "Meridian is held. Take the ice road before it snows shut.", video: "russia" },
@@ -137,7 +136,7 @@ const australia = arc("australia", {
   country: "Australia",
   water: "lakes", waterAmt: 0.35, forest: 0.28, peaks: 0.45, salt: 8.2,
   sky: ["#3a2418", "#e0a070"], ground: [168, 96, 58], canopy: "#6a7a38", trunk: "#6a4030", waterFill: "#2a6a78", snow: false,
-  dust: true,
+  dust: false,
 }, [
   { theater: "Red Interior", line: "Red dirt, a dry creek, and mesas instead of a forest.", brief: "Red Interior. The creek is low and the ionite glows in the scrub.", hudson: "The creek is held.", video: "australia" },
   { theater: "Dry Creek", line: "Sunset on the low water.", brief: "Use the creek as a road, not a fight. The mesa tower sees the open dirt.", hudson: "Creek crossed. Line the tanks on the mesa shadow.", video: "australia-02" },
@@ -189,7 +188,7 @@ const india = arc("india", {
   country: "India",
   water: "river", waterAmt: 0.8, forest: 0.48, peaks: 0.4, salt: 7.7,
   sky: ["#243028", "#e0c080"], ground: [140, 120, 64], canopy: "#4a7a32", trunk: "#5a3c24", waterFill: "#1a7068", snow: false,
-  dust: true,
+  dust: false,
 }, [
   { theater: "Deccan Shelf", line: "A monsoon river under a hard plateau.", brief: "The river is up. The plateau is the only clean ground for a base. Stay off the flood.", hudson: "The shelf is held.", video: "india" },
   { theater: "Monsoon Road", line: "A road that stays above the flood.", brief: "Stay on the road. The fields on either side are water by afternoon.", hudson: "The road is ours.", video: "india-02" },
@@ -228,7 +227,7 @@ const australiaCoast = arc("australia", {
   country: "Australia",
   water: "coast", waterAmt: 0.72, forest: 0.46, peaks: 0.28, salt: 12.4,
   sky: ["#1d3344", "#d7b56a"], ground: [150, 118, 72], canopy: "#6a7040", trunk: "#6a4a30", waterFill: "#1a6880", snow: false,
-  dust: true,
+  dust: false,
 }, [
   { theater: "Port Melbourne", line: "The Yarra docks after the interior.", brief: "The red interior is behind you. Melbourne is a dock fight. Hold the river road and take the port sheds.", hudson: "The sheds are ours.", video: "australia-melbourne" },
   { theater: "Harbour Bridge", line: "One bridge over Sydney water.", brief: "Sydney is the bridge. Do not split the column. The north shore guns watch the span.", hudson: "The bridge is held. The long coast north is Queensland, and it is not this harbour.", video: "australia-sydney" },

@@ -1777,184 +1777,151 @@ const TRAYS: { id: Tray; label: string; kinds: Kind[] }[] = [
 ];
 
 function Mark({ kind }: { kind: Kind }) {
+  const steel = "#9aa4ac";
+  const hull = "#4a545c";
+  const dark = "#1a2026";
+  const olive = "#3a4a38";
+  const accent = "#3ee0c5";
   if (kind === "kestrel") {
     return (
       <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <path d="M58 16 L18 10 L8 6 L14 16 L8 26 L18 22 Z" fill="#d5dee6" />
-        <path d="M14 16 L4 12 V20 Z" fill="#8ea0ae" />
+        <path d="M6 17 L22 14 L48 12 L58 16 L48 20 L22 18 Z" fill={steel} />
+        <path d="M18 16 L8 10 L12 16 L8 22 Z" fill={hull} />
+        <path d="M28 14 L42 8 L40 14 Z M28 18 L42 24 L40 18 Z" fill={dark} />
       </svg>
     );
   }
   if (kind === "condor") {
     return (
       <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <rect x="28" y="4" width="8" height="24" fill="#3a3228" />
-        <ellipse cx="32" cy="16" rx="18" ry="5" fill="#6a5438" />
+        <rect x="26" y="6" width="6" height="20" fill={dark} />
+        <path d="M8 16 L30 12 L56 16 L30 20 Z" fill="#6a5a48" />
+        <rect x="34" y="14" width="10" height="4" fill={hull} />
       </svg>
     );
   }
   if (kind === "ionwing") {
     return (
       <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <path d="M54 16 L10 4 L18 16 L10 28 Z" fill="#3ee0c5" />
+        <path d="M10 16 L28 10 L56 16 L28 22 Z" fill={accent} opacity="0.85" />
+        <path d="M18 16 L30 13 L46 16 L30 19 Z" fill={dark} />
       </svg>
     );
   }
   if (kind === "spectre") {
     return (
       <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <path d="M8 16 H48 L36 6 H20 Z M8 16 H48 L36 26 H20 Z" fill="#1a1e24" />
-        <rect x="18" y="4" width="4" height="24" fill="#2a323c" />
+        <path d="M6 16 H50 L40 8 H18 Z" fill={dark} />
+        <path d="M6 16 H50 L40 24 H18 Z" fill="#2a3238" />
+        <rect x="20" y="6" width="3" height="20" fill={hull} />
       </svg>
     );
   }
-  if (kind === "viper") {
+  if (kind === "viper" || kind === "lancer" || kind === "reaver" || kind === "bastion" || kind === "t3x" || kind === "aegis" || kind === "howl" || kind === "harvester") {
+    const body =
+      kind === "t3x" ? "#8a7348" : kind === "bastion" ? "#6a4a38" : kind === "howl" ? "#4a5238" : kind === "aegis" ? "#3a5460" : kind === "harvester" ? "#4a5858" : hull;
+    const barrel = kind === "harvester" ? 0 : kind === "bastion" || kind === "t3x" ? 18 : kind === "lancer" ? 16 : kind === "viper" ? 10 : 12;
     return (
       <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <rect x="20" y="12" width="24" height="8" fill="#5c6770" />
-        <circle cx="36" cy="16" r="3" fill="#1a2228" />
-        <rect x="42" y="15" width="8" height="2" fill="#d5dee6" />
+        <rect x="8" y="20" width="36" height="4" rx="1" fill={dark} />
+        <path d="M10 20 L14 12 H40 L48 16 L40 20 Z" fill={body} />
+        <path d="M40 13 L48 16 L40 19 Z" fill={dark} opacity="0.5" />
+        <rect x="22" y="10" width="14" height="8" rx="1" fill={dark} />
+        {kind === "howl" ? (
+          <>
+            <rect x="34" y="8" width="12" height="2" fill={steel} />
+            <rect x="34" y="12" width="12" height="2" fill={steel} />
+            <rect x="34" y="16" width="12" height="2" fill={steel} />
+          </>
+        ) : kind === "aegis" ? (
+          <>
+            <rect x="34" y="9" width="14" height="1.5" fill={steel} />
+            <rect x="34" y="17.5" width="14" height="1.5" fill={steel} />
+          </>
+        ) : kind === "harvester" ? (
+          <rect x="40" y="12" width="12" height="8" fill={accent} opacity="0.7" />
+        ) : (
+          <rect x="34" y="13" width={barrel} height="3" fill={steel} />
+        )}
+        {kind === "t3x" ? <rect x="24" y="12" width="8" height="2" fill="#c8a85a" /> : null}
       </svg>
     );
   }
-  if (kind === "lancer") {
+  if (kind === "rocket" || kind === "grenadier" || kind === "sergeant" || kind === "specops" || kind === "watch" || kind === "patrol" || kind === "rifle") {
+    const suit = kind === "specops" ? dark : kind === "sergeant" ? "#2e3e30" : kind === "watch" ? "#5a5438" : olive;
     return (
       <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <path d="M12 12 H40 L52 16 L40 20 H12 Z" fill="#5c6770" />
-        <rect x="44" y="15" width="16" height="2" fill="#d5dee6" />
-      </svg>
-    );
-  }
-  if (kind === "reaver") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <rect x="10" y="8" width="40" height="16" fill="#4a5560" />
-        <rect x="10" y="12" width="8" height="8" fill="#1a201c" />
-        <rect x="36" y="14" width="10" height="4" fill="#d5dee6" />
-      </svg>
-    );
-  }
-  if (kind === "howl") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <rect x="12" y="10" width="36" height="12" fill="#6a7048" />
-        <rect x="34" y="6" width="4" height="20" fill="#e8c56b" />
-        <rect x="40" y="8" width="4" height="16" fill="#d5dee6" />
-      </svg>
-    );
-  }
-  if (kind === "aegis") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <rect x="14" y="11" width="32" height="10" fill="#3a6a78" />
-        <rect x="36" y="8" width="14" height="2" fill="#d5dee6" />
-        <rect x="36" y="22" width="14" height="2" fill="#d5dee6" />
-      </svg>
-    );
-  }
-  if (kind === "bastion") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <rect x="8" y="8" width="40" height="16" fill="#8a5a3a" />
-        <rect x="40" y="14" width="18" height="4" fill="#d5dee6" />
-      </svg>
-    );
-  }
-  if (kind === "t3x") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <rect x="8" y="8" width="40" height="16" fill="#c6a15a" />
-        <rect x="40" y="14" width="16" height="3" fill="#d5dee6" />
-        <text x="22" y="19" fill="#1a1408" fontSize="7" fontFamily="Rajdhani, sans-serif">T3X</text>
-      </svg>
-    );
-  }
-  if (kind === "harvester") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <rect x="10" y="10" width="28" height="12" fill="#5c6770" />
-        <rect x="30" y="12" width="16" height="8" fill="#3ee0c5" />
-      </svg>
-    );
-  }
-  if (kind === "rocket") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <ellipse cx="24" cy="18" rx="7" ry="5" fill="#4a3828" />
-        <rect x="28" y="14" width="18" height="4" fill="#3a4038" />
-        <rect x="16" y="12" width="3" height="10" fill="#2a3036" />
-      </svg>
-    );
-  }
-  if (kind === "grenadier") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <ellipse cx="24" cy="18" rx="7" ry="5" fill="#5a4030" />
-        <circle cx="20" cy="22" r="2" fill="#3a6a38" />
-        <rect x="28" y="16" width="12" height="2" fill="#2c3238" />
-      </svg>
-    );
-  }
-  if (kind === "sergeant") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <ellipse cx="24" cy="18" rx="7" ry="5" fill="#2e4634" />
-        <rect x="18" y="12" width="6" height="1.2" fill="#e8c56b" />
-        <rect x="18" y="14.2" width="6" height="1.2" fill="#e8c56b" />
-        <rect x="28" y="16" width="14" height="2" fill="#2a3036" />
-      </svg>
-    );
-  }
-  if (kind === "specops") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <ellipse cx="24" cy="18" rx="7" ry="5" fill="#1a2228" />
-        <rect x="22" y="14" width="4" height="2" fill="#7dffb2" />
-        <rect x="28" y="16" width="10" height="2" fill="#14181c" />
-      </svg>
-    );
-  }
-  if (kind === "watch") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <ellipse cx="24" cy="18" rx="7" ry="5" fill="#6a6238" />
-        <circle cx="22" cy="12" r="2" fill="none" stroke="#d5dee6" />
-        <circle cx="27" cy="12" r="2" fill="none" stroke="#d5dee6" />
-      </svg>
-    );
-  }
-  if (kind === "patrol") {
-    return (
-      <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        <ellipse cx="28" cy="16" rx="7" ry="5" fill="#3f6a40" />
-        <ellipse cx="14" cy="22" rx="5" ry="3" fill="#6a5038" />
-        <rect x="32" y="15" width="12" height="2" fill="#2a3036" />
+        <path d="M18 26 L20 16 H28 L30 26 Z" fill={suit} />
+        <rect x="20" y="10" width="8" height="8" rx="1" fill={suit} />
+        <circle cx="24" cy="8" r="3.2" fill="#c4a078" />
+        <path d="M20 7 H28 V9 H20 Z" fill={dark} />
+        <rect x="28" y="12" width={kind === "rocket" ? 18 : 14} height={kind === "rocket" ? 3.5 : 2} fill={dark} />
+        {kind === "rocket" ? <rect x="14" y="12" width="4" height="10" fill={hull} /> : null}
+        {kind === "sergeant" ? <path d="M21 12 H27 M21 14 H27" stroke="#c8a85a" strokeWidth="1" /> : null}
+        {kind === "specops" ? <rect x="22" y="7.5" width="5" height="1.5" fill={accent} /> : null}
+        {kind === "watch" ? <path d="M22 5 h2 M26 5 h2" stroke={steel} strokeWidth="1.2" /> : null}
+        {kind === "patrol" ? <ellipse cx="12" cy="24" rx="5" ry="3" fill="#5a4030" /> : null}
+        {kind === "grenadier" ? <circle cx="16" cy="20" r="2.2" fill="#2a4a28" /> : null}
       </svg>
     );
   }
   if (DEFS[kind].building) {
     return (
       <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-        {kind === "wall" ? <rect x="6" y="14" width="52" height="8" fill="#8a7358" /> : null}
-        {kind === "relay" ? <path d="M32 4 L36 28 H28 Z M20 28 H44" stroke="#d5dee6" fill="#3ee0c5" /> : null}
-        {kind === "refinery" ? <path d="M8 26 V14 H22 V8 H28 V14 H56 V26 Z" fill="#8a7a58" /> : null}
-        {kind === "barracks" ? <path d="M10 26 V12 H28 V8 H36 V12 H54 V26 Z" fill="#5a6a48" /> : null}
-        {kind === "bay" ? <path d="M8 26 V10 H56 V26 H40 V16 H24 V26 Z" fill="#4a4038" /> : null}
-        {kind === "strip" ? <path d="M4 18 H60 M18 12 H46 L40 22 H24 Z" stroke="#d5dee6" fill="#6a8aaa" /> : null}
-        {kind === "turret" ? <path d="M20 24 H44 L40 16 H36 L48 8 H52 L34 16 H24 Z" fill="#6a6458" /> : null}
-        {kind === "sam" ? <path d="M16 26 H48 L40 16 H36 L46 6 H50 L34 16 H24 Z" fill="#3a6a48" /> : null}
-        {kind === "cannon" ? <path d="M14 22 H50 L46 14 H40 L58 10 H62 L38 14 H22 Z" fill="#5a4030" /> : null}
-        {kind === "silo" ? <ellipse cx="32" cy="20" rx="12" ry="8" fill="#3a5a40" /> : null}
+        <rect x="4" y="24" width="56" height="3" fill={dark} />
+        {kind === "wall" ? <path d="M6 24 V14 H58 V24 Z M10 14 V10 H16 V14 M24 14 V10 H30 V14 M38 14 V10 H44 V14 M50 14 V10 H56 V14" fill={hull} /> : null}
+        {kind === "spire" ? <path d="M22 24 V10 H42 V24 Z M26 10 V4 H38 V10 M30 4 V1 H34" fill={hull} /> : null}
+        {kind === "relay" ? (
+          <>
+            <rect x="16" y="14" width="32" height="10" fill={hull} />
+            <rect x="28" y="4" width="2" height="10" fill={steel} />
+            <path d="M20 8 H40" stroke={steel} strokeWidth="2" fill="none" />
+          </>
+        ) : null}
+        {kind === "refinery" ? (
+          <>
+            <rect x="8" y="14" width="24" height="10" fill={hull} />
+            <rect x="36" y="8" width="8" height="16" rx="3" fill={steel} />
+            <rect x="48" y="10" width="8" height="14" rx="3" fill={steel} />
+          </>
+        ) : null}
+        {kind === "barracks" ? <path d="M8 24 V12 H56 V24 Z M12 12 V8 H20 V12 M44 16 H52 V24" fill={olive} /> : null}
+        {kind === "bay" ? <path d="M6 24 V8 H58 V24 Z M14 12 H50 V24 M18 12 V22 M26 12 V22 M34 12 V22 M42 12 V22" fill={hull} /> : null}
+        {kind === "strip" ? (
+          <>
+            <rect x="4" y="18" width="40" height="4" fill={dark} />
+            <rect x="48" y="6" width="10" height="18" fill={hull} />
+            <rect x="10" y="19" width="4" height="2" fill={steel} />
+            <rect x="20" y="19" width="4" height="2" fill={steel} />
+            <rect x="30" y="19" width="4" height="2" fill={steel} />
+          </>
+        ) : null}
+        {kind === "turret" || kind === "cannon" || kind === "sam" ? (
+          <>
+            <rect x="22" y="16" width="12" height="8" fill={hull} />
+            <rect x="34" y={kind === "sam" ? 10 : 14} width={kind === "cannon" ? 20 : 14} height={kind === "sam" ? 2 : 3} fill={steel} />
+            {kind === "sam" ? <rect x="34" y="14" width="14" height="2" fill={steel} /> : null}
+            {kind === "sam" ? <rect x="34" y="18" width="14" height="2" fill={steel} /> : null}
+          </>
+        ) : null}
+        {kind === "silo" ? (
+          <>
+            <rect x="14" y="8" width="12" height="16" rx="5" fill={hull} />
+            <rect x="38" y="8" width="12" height="16" rx="5" fill={hull} />
+          </>
+        ) : null}
+        {!["wall", "spire", "relay", "refinery", "barracks", "bay", "strip", "turret", "cannon", "sam", "silo"].includes(kind) ? (
+          <rect x="16" y="10" width="32" height="14" fill={hull} />
+        ) : null}
       </svg>
     );
   }
   return (
     <svg viewBox="0 0 64 32" className="h-8 w-12" aria-hidden>
-      <ellipse cx="26" cy="18" rx="8" ry="5" fill="#3f6a40" />
-      <circle cx="22" cy="12" r="5" fill="#2f5a34" />
-      <rect x="20" y="14" width="14" height="3" fill="#2a3036" />
-      <rect x="28" y="16" width="2" height="3" fill="#1a1e22" />
-      <circle cx="24" cy="16" r="1.4" fill="#e4c2a2" />
+      <path d="M18 26 L20 16 H28 L30 26 Z" fill={olive} />
+      <rect x="20" y="10" width="8" height="8" rx="1" fill={olive} />
+      <circle cx="24" cy="8" r="3.2" fill="#c4a078" />
+      <rect x="28" y="13" width="14" height="2" fill={dark} />
     </svg>
   );
 }
