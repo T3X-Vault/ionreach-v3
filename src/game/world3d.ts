@@ -1028,8 +1028,8 @@ export class World3D {
   private buildAir(group: THREE.Group, kind: Kind, team: 0 | 1, tier: number): void {
     const bulk = 1 + (tier - 1) * 0.1;
     const pattern = this.patterns[Math.max(0, Math.min(3, tier - 1))];
-    const color = new THREE.Color(kind === "ionwing" ? "#d9fff6" : kind === "spectre" ? "#98a2a8" : kind === "condor" ? "#d2bea4" : "#d5dee6");
-    color.lerp(new THREE.Color(["#cfd6dc", "#8e99a0", "#e7eef2", "#f6f1e4"][tier - 1] ?? "#d5dee6"), 0.45);
+    const color = new THREE.Color(kind === "ionwing" ? "#3a8a7a" : kind === "spectre" ? "#3a444c" : kind === "condor" ? "#6a5a40" : "#6a7880");
+    color.lerp(new THREE.Color(["#5a6870", "#2e383e", "#4a545c", "#3a4448"][tier - 1] ?? "#5a6870"), 0.4);
     if (team === 1) color.lerp(new THREE.Color("#a86858"), 0.38);
     const body = paintMat(color, pattern, Math.max(2, tier));
     const wingMat = mat(kind === "ionwing" ? "#123832" : kind === "spectre" ? "#1a222a" : "#c5d0d6", 0.32, 0.48, kind === "ionwing" ? "#3ee0c5" : "#000", kind === "ionwing" ? 0.28 : 0);
