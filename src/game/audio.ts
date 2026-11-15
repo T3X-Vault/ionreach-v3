@@ -1,21 +1,37 @@
 export class Sfx {
   private ctx: AudioContext | null = null;
+  private master: GainNode | null = null;
   private scoreNodes: AudioNode[] = [];
   private noise: AudioBuffer | null = null;
   private musicTimer: ReturnType<typeof setInterval> | null = null;
+  private silenced = true;
 
+  /** Browser autoplay policy: call from a user gesture before expecting audio. */
   unlock(): void {
-    if (this.ctx) {
-      if (this.ctx.state === "suspended") void this.ctx.resume();
-      return;
+    if (!this.ctx) {
+      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.silenced ? 0 : 0.9;
+      this.master.connect(this.ctx.destination);
+      const len = this.ctx.sampleRate * 1;
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+      this.noise = buf;
     }
-    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    this.ctx = new AC();
-    const len = this.ctx.sampleRate * 1;
-    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-    this.noise = buf;
+    if (this.ctx.state === "suspended") void this.ctx.resume();
+  }
+
+  setMuted(muted: boolean): void {
+    this.silenced = muted;
+    if (this.master) this.master.gain.value = muted ? 0 : 0.9;
+    if (muted) this.stopScore();
+    else if (this.ctx?.state === "suspended") void this.ctx.resume();
+  }
+
+  isMuted(): boolean {
+    return this.silenced;
   }
 
   private env(gain: GainNode, t: number, a: number, d: number, peak: number): void {
@@ -25,51 +41,59 @@ export class Sfx {
     gain.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
   }
 
+  private out(): AudioNode | null {
+    if (!this.ctx || !this.master || this.silenced) return null;
+    if (this.ctx.state === "suspended") void this.ctx.resume();
+    return this.master;
+  }
+
   click(): void {
-    this.tone(620, 0.04, 0.05, "square", 0.04);
+    this.tone(620, 0.04, 0.05, "square", 0.12);
   }
 
   bad(): void {
-    this.tone(140, 0.08, 0.18, "sawtooth", 0.05);
+    this.tone(140, 0.08, 0.18, "sawtooth", 0.14);
   }
 
   build(): void {
-    this.tone(220, 0.04, 0.12, "triangle", 0.05);
-    this.tone(440, 0.06, 0.16, "sine", 0.04);
+    this.tone(220, 0.04, 0.12, "triangle", 0.14);
+    this.tone(440, 0.06, 0.16, "sine", 0.1);
   }
 
   shot(kind: string): void {
-    if (kind === "rocket") this.noiseBurst(180, 0.18, 0.07);
-    else if (kind === "shell") this.noiseBurst(90, 0.09, 0.08);
-    else this.tone(880, 0.01, 0.05, "square", 0.03);
+    if (kind === "rocket") this.noiseBurst(180, 0.22, 0.22);
+    else if (kind === "shell") this.noiseBurst(90, 0.12, 0.24);
+    else this.tone(880, 0.01, 0.06, "square", 0.1);
   }
 
   boom(big: boolean): void {
-    this.noiseBurst(big ? 70 : 140, big ? 0.4 : 0.2, big ? 0.12 : 0.07);
+    this.noiseBurst(big ? 70 : 140, big ? 0.45 : 0.22, big ? 0.32 : 0.2);
   }
 
   win(): void {
-    this.tone(523, 0.02, 0.2, "triangle", 0.06);
-    this.tone(659, 0.12, 0.22, "triangle", 0.05);
-    this.tone(784, 0.22, 0.34, "sine", 0.05);
+    this.tone(523, 0.02, 0.2, "triangle", 0.16);
+    this.tone(659, 0.12, 0.22, "triangle", 0.14);
+    this.tone(784, 0.22, 0.34, "sine", 0.14);
   }
 
   lose(): void {
-    this.tone(196, 0.02, 0.3, "sawtooth", 0.05);
-    this.tone(130, 0.2, 0.4, "triangle", 0.05);
+    this.tone(196, 0.02, 0.3, "sawtooth", 0.14);
+    this.tone(130, 0.2, 0.4, "triangle", 0.14);
   }
 
   startScore(): void {
     this.unlock();
     this.stopScore();
+    if (this.silenced) return;
     const ctx = this.ctx;
     if (!ctx) return;
     void ctx.resume();
     const notes = [262, 330, 392, 523, 392, 330];
     let step = 0;
     const tick = () => {
-      this.tone(notes[step % notes.length], 0, 0.42, "triangle", 0.16);
-      this.tone(notes[step % notes.length] / 2, 0, 0.5, "sine", 0.08);
+      if (this.silenced) return;
+      this.tone(notes[step % notes.length]!, 0, 0.42, "triangle", 0.22);
+      this.tone(notes[step % notes.length]! / 2, 0, 0.5, "sine", 0.12);
       step += 1;
     };
     tick();
@@ -94,7 +118,8 @@ export class Sfx {
 
   private tone(freq: number, delay: number, dur: number, type: OscillatorType, peak: number): void {
     const ctx = this.ctx;
-    if (!ctx) return;
+    const dest = this.out();
+    if (!ctx || !dest) return;
     const t = ctx.currentTime + delay;
     const o = ctx.createOscillator();
     o.type = type;
@@ -103,14 +128,15 @@ export class Sfx {
     const g = ctx.createGain();
     this.env(g, t, 0.01, dur, peak);
     o.connect(g);
-    g.connect(ctx.destination);
+    g.connect(dest);
     o.start(t);
     o.stop(t + dur + 0.02);
   }
 
   private noiseBurst(freq: number, dur: number, peak: number): void {
     const ctx = this.ctx;
-    if (!ctx || !this.noise) return;
+    const dest = this.out();
+    if (!ctx || !dest || !this.noise) return;
     const t = ctx.currentTime;
     const src = ctx.createBufferSource();
     src.buffer = this.noise;
@@ -122,7 +148,7 @@ export class Sfx {
     this.env(g, t, 0.01, dur, peak);
     src.connect(f);
     f.connect(g);
-    g.connect(ctx.destination);
+    g.connect(dest);
     src.start(t);
     src.stop(t + dur + 0.02);
   }

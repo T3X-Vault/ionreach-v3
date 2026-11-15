@@ -144,9 +144,15 @@ export function Briefing({
     const next = !sound;
     setSound(next);
     const video = videoRef.current;
-    if (video) video.muted = !next;
+    if (video) {
+      video.muted = !next;
+      if (next) void video.play().catch(() => undefined);
+    }
     const voice = audioRef.current;
-    if (voice) voice.muted = !next;
+    if (voice) {
+      voice.muted = !next;
+      if (next && voice.paused && voice.src) void voice.play().catch(() => undefined);
+    }
   }
 
   function paint(token: Token, index: number) {

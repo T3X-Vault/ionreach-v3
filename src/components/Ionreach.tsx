@@ -133,6 +133,7 @@ export function Ionreach() {
   const [manual, setManual] = useState(false);
   const [cinema, setCinema] = useState(false);
   const [muted, setMuted] = useState(true);
+  const mutedRef = useRef(true);
   const [flyover, setFlyover] = useState(false);
   const [eye, setEye] = useState(false);
   const [introLine, setIntroLine] = useState("Helion forward base.");
@@ -182,6 +183,7 @@ export function Ionreach() {
     } catch {
       /* ignore */
     }
+    sfx.current.setMuted(true);
     const v = vidRef.current;
     if (!v) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -189,6 +191,16 @@ export function Ionreach() {
       v.muted = true;
       void v.play().catch(() => undefined);
     }
+  }, []);
+
+  useEffect(() => {
+    const arm = () => sfx.current.unlock();
+    window.addEventListener("pointerdown", arm, { once: true });
+    window.addEventListener("keydown", arm, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", arm);
+      window.removeEventListener("keydown", arm);
+    };
   }, []);
 
   useEffect(() => {
@@ -668,7 +680,8 @@ export function Ionreach() {
 
   function deploy(id = chapterRef.current, setup: SkirmishSetup | null = null) {
     sfx.current.unlock();
-    if (musicOnRef.current) sfx.current.startScore();
+    sfx.current.setMuted(mutedRef.current);
+    if (!mutedRef.current && musicOnRef.current) sfx.current.startScore();
     chapterRef.current = setup ? mapById(setup.mapId).chapterId : id;
     setupRef.current = setup;
     midPlayed.current = false;
@@ -713,30 +726,29 @@ export function Ionreach() {
     sfx.current.unlock();
     sfx.current.stopScore();
     setCinema(true);
-    setMuted(true);
     if (vidRef.current) vidRef.current.pause();
     window.setTimeout(() => {
       const v = cutRef.current;
       if (!v) return;
-      v.muted = true;
+      v.muted = mutedRef.current;
       v.loop = true;
       void v.play().catch(() => undefined);
     }, 40);
   }
 
   function closeCinema() {
-    if (musicOnRef.current) sfx.current.startScore();
     setCinema(false);
     if (cutRef.current) {
       cutRef.current.pause();
       cutRef.current.muted = true;
     }
     const v = vidRef.current;
-    if (!v) return;
-    v.muted = true;
-    setMuted(true);
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!reduce && phaseRef.current === "title") void v.play().catch(() => undefined);
+    if (v) {
+      v.muted = mutedRef.current;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!reduce && phaseRef.current === "title") void v.play().catch(() => undefined);
+    }
+    if (!mutedRef.current && musicOnRef.current) sfx.current.startScore();
   }
 
   function isIphone() {
@@ -829,14 +841,22 @@ export function Ionreach() {
   }
 
   function toggleMute() {
-    const v = vidRef.current;
-    if (!v) return;
+    const next = !mutedRef.current;
+    mutedRef.current = next;
+    setMuted(next);
     sfx.current.unlock();
-    v.muted = !v.muted;
-    setMuted(v.muted);
-    if (v.muted) sfx.current.stopScore();
-    else if (musicOnRef.current) sfx.current.startScore();
-    if (!v.muted) void v.play().catch(() => undefined);
+    sfx.current.setMuted(next);
+    const v = vidRef.current;
+    if (v) {
+      v.muted = next;
+      if (!next) void v.play().catch(() => undefined);
+    }
+    if (cutRef.current) cutRef.current.muted = next;
+    if (next) sfx.current.stopScore();
+    else {
+      sfx.current.click();
+      if (musicOnRef.current) sfx.current.startScore();
+    }
   }
 
   function onMini(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -859,7 +879,7 @@ export function Ionreach() {
         src="/media/trailer.mp4?v=7"
         poster="/media/poster.jpg"
         playsInline
-        muted
+        muted={muted}
         loop
         preload="auto"
       />
@@ -1100,8 +1120,19 @@ export function Ionreach() {
                 onMusic={(on) => {
                   musicOnRef.current = on;
                   setMusicOn(on);
-                  if (on) sfx.current.startScore();
-                  else sfx.current.stopScore();
+                  sfx.current.unlock();
+                  if (on) {
+                    if (mutedRef.current) {
+                      mutedRef.current = false;
+                      setMuted(false);
+                      sfx.current.setMuted(false);
+                      if (vidRef.current) {
+                        vidRef.current.muted = false;
+                        void vidRef.current.play().catch(() => undefined);
+                      }
+                    }
+                    sfx.current.startScore();
+                  } else sfx.current.stopScore();
                 }}
               />
             )}
@@ -1202,7 +1233,7 @@ export function Ionreach() {
 
       {cinema && (
         <div className="absolute inset-0 z-30 bg-bg anim-fade">
-          <video ref={cutRef} className="h-full w-full object-contain" src="/media/trailer.mp4?v=drive" autoPlay muted loop playsInline />
+          <video ref={cutRef} className="h-full w-full object-contain" src="/media/trailer.mp4?v=drive" autoPlay muted={muted} loop playsInline />
           <button type="button" onClick={() => { setTrailerChoice(false); closeCinema(); }} className="cta-ghost absolute top-3 left-3 z-30 min-h-11 px-4 font-display text-xl">Back to menu</button>
           <div className="absolute inset-x-0 bottom-0 z-30 flex flex-wrap items-center gap-2 border-t border-line/80 bg-bg/95 px-3 py-3 backdrop-blur-sm">
             <button type="button" onClick={() => { setTrailerChoice(false); closeCinema(); }} className="cta-ghost min-h-11 px-4 font-display text-xl">Back to menu</button>
@@ -1578,8 +1609,15 @@ export function Ionreach() {
         onMusic={(on) => {
           musicOnRef.current = on;
           setMusicOn(on);
-          if (on) sfx.current.startScore();
-          else sfx.current.stopScore();
+          sfx.current.unlock();
+          if (on) {
+            if (mutedRef.current) {
+              mutedRef.current = false;
+              setMuted(false);
+              sfx.current.setMuted(false);
+            }
+            sfx.current.startScore();
+          } else sfx.current.stopScore();
         }}
       />
       {!battle && !menuChrome && (
