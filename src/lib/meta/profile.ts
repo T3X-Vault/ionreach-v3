@@ -52,6 +52,8 @@ export type Profile = {
   marks: number;
   owned: ShopId[];
   equipped: ShopId[];
+  /** Exclusive check-in NFT badges held on this device. */
+  nfts: string[];
 };
 
 export type SaveSlot = {
@@ -64,7 +66,7 @@ export type SaveSlot = {
 const PROFILE_KEY = "ionreach.profile";
 const SAVES_KEY = "ionreach.saves";
 
-const empty = (): Profile => ({ marks: 0, owned: [], equipped: [] });
+const empty = (): Profile => ({ marks: 0, owned: [], equipped: [], nfts: [] });
 
 export function readProfile(): Profile {
   if (typeof localStorage === "undefined") return empty();
@@ -76,6 +78,7 @@ export function readProfile(): Profile {
       marks: Number(parsed.marks) || 0,
       owned: Array.isArray(parsed.owned) ? parsed.owned : [],
       equipped: Array.isArray(parsed.equipped) ? parsed.equipped : [],
+      nfts: Array.isArray(parsed.nfts) ? parsed.nfts : [],
     };
   } catch {
     return empty();

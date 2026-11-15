@@ -25,7 +25,7 @@ export function SettingsPanel({
   initialTab?: Tab;
 }) {
   const [tab, setTab] = useState<Tab>("wallet");
-  const [profile, setProfile] = useState<Profile>({ marks: 0, owned: [], equipped: [] });
+  const [profile, setProfile] = useState<Profile>({ marks: 0, owned: [], equipped: [], nfts: [] });
   const [security, setSecurity] = useState<SecurityProfile>(readSecurity());
   const [saves, setSaves] = useState<(SaveSlot | null)[]>([null, null, null, null]);
   const [email, setEmail] = useState("");

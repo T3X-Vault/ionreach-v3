@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { claimCheckin, checkedInToday, daysUntilPrize, prizeById, readCheckin, type CheckinState } from "@/lib/meta/checkin";
+import { readProfile } from "@/lib/meta/profile";
 import {
   Box,
   Crosshair,
@@ -109,6 +111,7 @@ function catmull(pts: { x: number; y: number }[], u: number): { x: number; y: nu
 }
 
 export function Ionreach() {
+  const mainRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const miniRef = useRef<HTMLCanvasElement>(null);
   const vidRef = useRef<HTMLVideoElement>(null);
@@ -153,6 +156,8 @@ export function Ionreach() {
   const [menuTool, setMenuTool] = useState<MenuTool | null>(null);
   const [settingsTab, setSettingsTab] = useState<"wallet" | "saves">("wallet");
   const [full, setFull] = useState(false);
+  const [checkin, setCheckin] = useState<CheckinState>(() => (typeof window === "undefined" ? { lastDay: null, streak: 0, total: 0, prizes: [], lastPrizeId: null } : readCheckin()));
+  const [checkinNote, setCheckinNote] = useState("");
   const [tools, setTools] = useState({ command: true, select: true, map: false, powers: false, match: false });
   const [yieldAsk, setYieldAsk] = useState(false);
   const [records, setRecords] = useState(false);
@@ -771,30 +776,51 @@ export function Ionreach() {
 
   async function toggleFull() {
     const root = document.documentElement;
-    const doc = document as Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => Promise<void> };
-    if (isIphone()) {
-      if (root.classList.contains("ios-full")) leaveIphoneFull();
-      else enterIphoneFull();
-      return;
-    }
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element;
+      webkitExitFullscreen?: () => Promise<void>;
+      webkitFullscreenEnabled?: boolean;
+    };
     const native = document.fullscreenElement || doc.webkitFullscreenElement;
     if (native) {
       const exit = document.exitFullscreen?.bind(document) ?? doc.webkitExitFullscreen?.bind(document);
       await exit?.().catch(() => undefined);
       leaveIphoneFull();
+      setFull(false);
       return;
     }
-    const el = root as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
-    const req = el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el);
-    if (req) {
-      try {
-        await req();
+    if (root.classList.contains("ios-full")) {
+      leaveIphoneFull();
+      setFull(false);
+      return;
+    }
+    if (isIphone()) {
+      enterIphoneFull();
+      return;
+    }
+    const target = (mainRef.current ?? root) as HTMLElement & {
+      requestFullscreen?: (opts?: FullscreenOptions) => Promise<void>;
+      webkitRequestFullscreen?: () => Promise<void> | void;
+      webkitRequestFullScreen?: () => Promise<void> | void;
+    };
+    try {
+      if (target.requestFullscreen) {
+        await target.requestFullscreen({ navigationUI: "hide" });
         setFull(true);
         return;
-      } catch {
-        enterIphoneFull();
+      }
+      if (target.webkitRequestFullscreen) {
+        await Promise.resolve(target.webkitRequestFullscreen());
+        setFull(true);
         return;
       }
+      if (target.webkitRequestFullScreen) {
+        await Promise.resolve(target.webkitRequestFullScreen());
+        setFull(true);
+        return;
+      }
+    } catch {
+      /* fall through to CSS fullscreen */
     }
     enterIphoneFull();
   }
@@ -823,7 +849,7 @@ export function Ionreach() {
   const battle = phase !== "title";
 
   return (
-    <main className={"relative h-dvh w-full overflow-hidden bg-bg text-fg " + (full ? "h-[var(--app-h,100dvh)]" : "")}>
+    <main ref={mainRef} className={"relative h-dvh w-full overflow-hidden bg-bg text-fg " + (full ? "h-[var(--app-h,100dvh)]" : "")}>
       <video
         ref={vidRef}
         className={battle ? "hidden" : "absolute inset-0 h-full w-full object-cover"}
@@ -891,27 +917,32 @@ export function Ionreach() {
                 </div>
                 <nav className="anim-rise-delay-3 mt-6 grid max-w-md grid-cols-1 gap-2 sm:grid-cols-2">
                   {(
-                    [
-                      ["campaign", "Campaign"],
-                      ["multi", "Multiplayer"],
-                      ["settings", "Settings"],
-                      ["manual", "Manual"],
-                      ["records", "Achievements"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => {
-                        if (id === "settings") setSettingsTab("wallet");
-                        if (id === "campaign") setPickingCountry(null);
-                        setMenuTool(id);
-                      }}
-                      className={"menu-nav-btn min-h-12 px-4 font-display text-xl " + (id === "campaign" ? "sm:col-span-2 border-ion/50" : "")}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                  [
+                    ["campaign", "Campaign"],
+                    ["multi", "Multiplayer"],
+                    ["checkin", "Check-in"],
+                    ["settings", "Settings"],
+                    ["manual", "Manual"],
+                    ["records", "Achievements"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      if (id === "settings") setSettingsTab("wallet");
+                      if (id === "campaign") setPickingCountry(null);
+                      if (id === "checkin") {
+                        setCheckin(readCheckin());
+                        setCheckinNote("");
+                      }
+                      setMenuTool(id);
+                    }}
+                    className={"menu-nav-btn min-h-12 px-4 font-display text-xl " + (id === "campaign" ? "sm:col-span-2 border-ion/50" : "")}
+                  >
+                    {label}
+                  </button>
+                ))}
                   <button
                     type="button"
                     onClick={() => {
@@ -1092,6 +1123,75 @@ export function Ionreach() {
                   </li>
                 ))}
               </ul>
+            )}
+            {menuTool === "checkin" && (
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+                <div className="panel-glass p-4">
+                  <div className="ion-rule mb-3" />
+                  <p className="font-display hud-chip text-xs text-ion">Daily check-in</p>
+                  <h3 className="mt-1 font-display text-3xl tracking-wide">Ten days, one prize</h3>
+                  <p className="mt-2 text-sm text-muted">
+                    Check in once a day. No daily T3X. Every 10 check-ins rolls one random prize: a join, a battlefield asset, or an exclusive game NFT.
+                  </p>
+                  <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+                    <div className="border border-line/80 bg-bg/40 px-2 py-3">
+                      <dt className="text-[11px] text-muted">Streak</dt>
+                      <dd className="font-display text-2xl text-ion">{checkin.streak}</dd>
+                    </div>
+                    <div className="border border-line/80 bg-bg/40 px-2 py-3">
+                      <dt className="text-[11px] text-muted">Total days</dt>
+                      <dd className="font-display text-2xl">{checkin.total}</dd>
+                    </div>
+                    <div className="border border-line/80 bg-bg/40 px-2 py-3">
+                      <dt className="text-[11px] text-muted">To prize</dt>
+                      <dd className="font-display text-2xl text-gold">{checkedInToday(checkin) && checkin.total % 10 === 0 && checkin.total > 0 ? 10 : daysUntilPrize(checkin)}</dd>
+                    </div>
+                  </dl>
+                  <button
+                    type="button"
+                    disabled={checkedInToday(checkin)}
+                    onClick={() => {
+                      const result = claimCheckin();
+                      setCheckin(result.state);
+                      setCheckinNote(result.ok ? result.message : result.reason);
+                    }}
+                    className="cta-primary mt-4 min-h-12 w-full px-4 font-display text-2xl disabled:opacity-40"
+                  >
+                    {checkedInToday(checkin) ? "Checked in today" : "Check in"}
+                  </button>
+                  {checkinNote && <p className="mt-3 text-sm text-ion">{checkinNote}</p>}
+                </div>
+                <div className="mt-4">
+                  <p className="font-display hud-chip text-xs text-muted">Prizes held</p>
+                  <ul className="mt-2 space-y-1.5">
+                    {checkin.prizes.length === 0 && <li className="text-sm text-muted">None yet. Keep the streak.</li>}
+                    {checkin.prizes.map((id) => {
+                      const prize = prizeById(id);
+                      return (
+                        <li key={id} className="panel-glass border-gold/30 px-3 py-2">
+                          <p className="font-display text-lg tracking-wide text-gold">{prize?.name ?? id}</p>
+                          <p className="text-[11px] text-muted">{prize ? `${prize.kind.toUpperCase()} · ${prize.detail}` : "Held on this device."}</p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {readProfile().nfts.length > 0 && (
+                    <div className="mt-4">
+                      <p className="font-display hud-chip text-xs text-muted">Exclusive NFTs</p>
+                      <ul className="mt-2 space-y-1.5">
+                        {readProfile().nfts.map((id) => {
+                          const prize = prizeById(id);
+                          return (
+                            <li key={id} className="panel-glass px-3 py-2">
+                              <p className="font-display text-lg text-ion">{prize?.name ?? id}</p>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -1487,7 +1587,7 @@ export function Ionreach() {
 }
 
 type Tray = "base" | "men" | "armor" | "air";
-type MenuTool = "campaign" | "multi" | "settings" | "manual" | "records";
+type MenuTool = "campaign" | "multi" | "settings" | "manual" | "records" | "checkin";
 
 const COUNTRY_IDS = ["usa", "russia", "china", "australia", "korea", "japan", "uk", "india", "france", "brazil"];
 

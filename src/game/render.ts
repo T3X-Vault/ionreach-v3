@@ -546,106 +546,112 @@ export class Renderer {
   private drawSoldier(ctx: CanvasRenderingContext2D, e: Ent, time: number, team: string): void {
     ctx.rotate(e.facing);
     const moving = e.order !== "idle" && e.order !== "hold";
-    const step = Math.sin(time * 10 + e.id) * (moving ? 1.6 : 0);
+    const step = Math.sin(time * 10 + e.id) * (moving ? 1.8 : 0);
     const ready = this.kick(e.id);
     const foe = e.team === 1;
     const cloth = foe
       ? "#6a3830"
       : e.kind === "specops"
-        ? "#243038"
+        ? "#1c242c"
         : e.kind === "sergeant"
           ? "#2e4634"
           : e.kind === "watch"
             ? "#6a6238"
-            : "#3f6a40";
-    ctx.fillStyle = "rgba(0,0,0,0.28)";
+            : "#3a5c3c";
+    const plate = foe ? "#4a2a24" : "#2a3438";
+    ctx.fillStyle = "rgba(0,0,0,0.32)";
     ctx.beginPath();
-    ctx.ellipse(1, 2, 8, 4.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(1.5, 3, 9, 5, 0, 0, Math.PI * 2);
     ctx.fill();
+    // legs
     ctx.fillStyle = cloth;
-    ctx.fillRect(-8, -3.4 + step, 5, 2.2);
-    ctx.fillRect(-8, 1.1 - step, 5, 2.2);
-    ctx.fillStyle = "#2a3138";
-    ctx.fillRect(-10, -3.6 + step, 2.4, 2.5);
-    ctx.fillRect(-10, 1.2 - step, 2.4, 2.5);
+    ctx.fillRect(-9, -4.2 + step, 5.5, 2.6);
+    ctx.fillRect(-9, 1.4 - step, 5.5, 2.6);
+    ctx.fillStyle = "#14181c";
+    ctx.fillRect(-11.2, -4.4 + step, 2.6, 3);
+    ctx.fillRect(-11.2, 1.5 - step, 2.6, 3);
+    // torso + plate
     ctx.fillStyle = cloth;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 5.2, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(0.2, 0, 6.2, 4.6, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = foe ? "#4a2a24" : "#6d5a38";
-    ctx.fillRect(-1.2, -2.2, 3.6, 4.4);
+    ctx.fillStyle = plate;
+    ctx.fillRect(-1.4, -2.6, 4.4, 5.2);
     ctx.fillStyle = team;
-    ctx.fillRect(1.6, -3.5, 2.4, 1.5);
+    ctx.fillRect(2.2, -3.8, 2.6, 1.6);
+    // head + helmet
     ctx.fillStyle = cloth;
     ctx.beginPath();
-    ctx.arc(-1.2, -0.4, 3.3, 0, Math.PI * 2);
+    ctx.arc(-0.8, -0.2, 3.6, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = foe ? "#8a4038" : "#2f5a34";
+    ctx.fillStyle = foe ? "#7a3830" : "#243028";
     ctx.beginPath();
-    ctx.arc(-1.4, -0.8, 2.5, Math.PI, Math.PI * 2);
+    ctx.arc(-1.1, -0.9, 2.8, Math.PI * 1.05, Math.PI * 1.95);
     ctx.fill();
     ctx.fillStyle = "#e6c39a";
-    ctx.fillRect(-0.6, 0.2, 2.2, 1.4);
+    ctx.fillRect(-0.2, 0.35, 2.4, 1.5);
+    ctx.fillStyle = "#0a1014";
+    ctx.fillRect(1.6, -0.15, 0.7, 1.8);
     ctx.save();
-    ctx.translate(0.5, 0.6);
-    ctx.rotate(-0.35 + ready * 0.55);
+    ctx.translate(1.2, 0.8);
+    ctx.rotate(-0.28 + ready * 0.5);
     this.drawGun(ctx, e.kind);
     ctx.restore();
     ctx.fillStyle = "#e4c2a2";
     if (e.kind !== "specops") {
       ctx.beginPath();
-      ctx.arc(2.4, 1.3, 1.15, 0, Math.PI * 2);
-      ctx.arc(6.2, 0.2 + ready, 1.05, 0, Math.PI * 2);
+      ctx.arc(3.2, 1.5, 1.2, 0, Math.PI * 2);
+      ctx.arc(7.4, 0.15 + ready, 1.1, 0, Math.PI * 2);
       ctx.fill();
     }
     if (e.kind === "rocket") {
-      ctx.fillStyle = "#3a4038";
-      ctx.fillRect(-6, -3.2, 2.2, 6.4);
-      ctx.fillRect(-8.2, -2.4, 2, 4.8);
+      ctx.fillStyle = "#2e3430";
+      ctx.fillRect(-7, -3.6, 2.6, 7.2);
+      ctx.fillRect(-9.4, -2.6, 2.2, 5.2);
     }
     if (e.kind === "sergeant") {
       ctx.fillStyle = "#e8c56b";
-      ctx.fillRect(-2.2, -2.4, 2.4, 0.7);
-      ctx.fillRect(-2.2, -1.2, 2.4, 0.7);
+      ctx.fillRect(-2.4, -2.6, 2.6, 0.75);
+      ctx.fillRect(-2.4, -1.3, 2.6, 0.75);
       ctx.strokeStyle = "#d5dee6";
-      ctx.lineWidth = 0.6;
+      ctx.lineWidth = 0.7;
       ctx.beginPath();
-      ctx.moveTo(-3, -3);
-      ctx.lineTo(-3, -7);
+      ctx.moveTo(-3.2, -3.2);
+      ctx.lineTo(-3.2, -7.4);
       ctx.stroke();
     }
     if (e.kind === "specops") {
-      ctx.fillStyle = "#101418";
-      ctx.fillRect(-2.4, -0.2, 2.6, 1.2);
+      ctx.fillStyle = "#080c10";
+      ctx.fillRect(-2.6, -0.35, 2.8, 1.3);
       ctx.fillStyle = "#7dffb2";
-      ctx.fillRect(-0.4, 0.1, 1.2, 0.5);
+      ctx.fillRect(-0.35, 0.05, 1.3, 0.55);
     }
     if (e.kind === "patrol") {
       ctx.strokeStyle = "#c6b08a";
-      ctx.lineWidth = 0.5;
+      ctx.lineWidth = 0.55;
       ctx.beginPath();
-      ctx.moveTo(-2, 3);
-      ctx.lineTo(-4, 6);
+      ctx.moveTo(-2.2, 3.2);
+      ctx.lineTo(-4.4, 6.4);
       ctx.stroke();
       ctx.fillStyle = "#6a5038";
       ctx.beginPath();
-      ctx.ellipse(-5, 7, 3.2, 1.8, 0.3, 0, Math.PI * 2);
+      ctx.ellipse(-5.4, 7.4, 3.4, 1.9, 0.3, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "#2a2018";
-      ctx.fillRect(-8.2, 6.2, 2.2, 1);
+      ctx.fillRect(-8.6, 6.5, 2.4, 1.1);
     }
     if (e.kind === "watch") {
       ctx.strokeStyle = "#d5dee6";
-      ctx.lineWidth = 0.9;
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(-0.2, -2.2, 1.1, 0, Math.PI * 2);
-      ctx.arc(1.8, -2.2, 1.1, 0, Math.PI * 2);
+      ctx.arc(0, -2.4, 1.2, 0, Math.PI * 2);
+      ctx.arc(2.1, -2.4, 1.2, 0, Math.PI * 2);
       ctx.stroke();
     }
     if (e.kind === "grenadier") {
       ctx.fillStyle = "#2a4a28";
       ctx.beginPath();
-      ctx.arc(-4.5, 2.4, 1.5, 0, Math.PI * 2);
+      ctx.arc(-4.8, 2.6, 1.7, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -776,75 +782,96 @@ export class Renderer {
     const kind = e.kind;
     const ace = kind === "t3x";
     const hv = kind === "harvester";
-    const len = hv ? 30 : ace || kind === "bastion" ? 52 : kind === "viper" ? 32 : kind === "reaver" ? 44 : 40;
-    const wid = hv ? 16 : kind === "viper" ? 16 : kind === "reaver" || kind === "bastion" || ace ? 24 : 20;
-    const paint = ace ? "#6a5a32" : kind === "howl" ? "#3d4a32" : kind === "aegis" ? "#1e4048" : kind === "bastion" ? "#4a3428" : "#2a3642";
-    ctx.fillStyle = "#12161a";
-    ctx.fillRect(-len / 2, -wid / 2 - 2, len, 3.5);
-    ctx.fillRect(-len / 2, wid / 2 - 1.5, len, 3.5);
+    const len = hv ? 32 : ace || kind === "bastion" ? 56 : kind === "viper" ? 34 : kind === "reaver" ? 46 : 42;
+    const wid = hv ? 17 : kind === "viper" ? 17 : kind === "reaver" || kind === "bastion" || ace ? 26 : 21;
+    const paint = ace ? "#746236" : kind === "howl" ? "#424e36" : kind === "aegis" ? "#1f4650" : kind === "bastion" ? "#52382c" : kind === "lancer" ? "#3f4e42" : "#2e3c46";
+    // tracks
+    ctx.fillStyle = "#0c1014";
+    ctx.fillRect(-len / 2, -wid / 2 - 2.4, len, 4);
+    ctx.fillRect(-len / 2, wid / 2 - 1.6, len, 4);
+    for (let i = 0; i < 5; i++) {
+      const x = -len / 2 + 4 + i * (len / 5);
+      ctx.fillStyle = "#1a2228";
+      ctx.fillRect(x, -wid / 2 - 1.6, 3, 2.4);
+      ctx.fillRect(x, wid / 2 - 0.8, 3, 2.4);
+    }
+    // hull + glacis
     ctx.fillStyle = paint;
     ctx.beginPath();
-    ctx.moveTo(-len / 2 + 2, -wid / 2 + 2);
-    ctx.lineTo(len / 2 - 8, -wid / 2 + 3);
-    ctx.lineTo(len / 2, 0);
-    ctx.lineTo(len / 2 - 8, wid / 2 - 3);
-    ctx.lineTo(-len / 2 + 2, wid / 2 - 2);
+    ctx.moveTo(-len / 2 + 3, -wid / 2 + 2.5);
+    ctx.lineTo(len / 2 - 11, -wid / 2 + 3.5);
+    ctx.lineTo(len / 2 + 1, 0);
+    ctx.lineTo(len / 2 - 11, wid / 2 - 3.5);
+    ctx.lineTo(-len / 2 + 3, wid / 2 - 2.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    ctx.beginPath();
+    ctx.moveTo(len / 2 - 14, -wid / 2 + 4);
+    ctx.lineTo(len / 2 + 1, 0);
+    ctx.lineTo(len / 2 - 14, wid / 2 - 4);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = team;
-    ctx.fillRect(-4, -wid / 2 + 4, 8, 1.6);
-    ctx.strokeStyle = "rgba(0,0,0,0.35)";
-    ctx.lineWidth = 1;
+    ctx.fillRect(-5, -wid / 2 + 4.5, 10, 1.8);
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 1.1;
     ctx.stroke();
     if (kind === "viper") {
-      ctx.fillStyle = "#1a2228";
+      ctx.fillStyle = "#141a20";
       ctx.beginPath();
-      ctx.arc(2, 0, 3.2, 0, Math.PI * 2);
+      ctx.arc(3, 0, 3.6, 0, Math.PI * 2);
       ctx.fill();
     }
     if (kind === "reaver") {
-      ctx.fillStyle = "#1a201c";
-      ctx.fillRect(-len / 2 + 2, -4, 6, 8);
+      ctx.fillStyle = "#141a18";
+      ctx.fillRect(-len / 2 + 2, -5, 7, 10);
     }
     if (kind === "lancer") {
       ctx.fillStyle = "#101418";
-      ctx.fillRect(len / 2 - 10, -1.2, 8, 2.4);
+      ctx.fillRect(len / 2 - 12, -1.4, 10, 2.8);
     }
     if (hv) {
       ctx.fillStyle = "#101418";
-      ctx.fillRect(-6, -5, 16, 10);
+      ctx.fillRect(-7, -5.5, 18, 11);
       const fill = DEFS.harvester.cargo ? e.cargo / DEFS.harvester.cargo : 0;
       ctx.fillStyle = "rgba(62,224,197,0.9)";
-      ctx.fillRect(-5, -4, 14 * fill, 8);
+      ctx.fillRect(-6, -4.5, 16 * fill, 9);
       ctx.fillStyle = "#d5dee6";
-      ctx.fillRect(8, -3, 6, 6);
+      ctx.fillRect(9, -3.5, 7, 7);
       return;
     }
     ctx.save();
     ctx.rotate(e.aim - e.facing + this.kick(e.id) * 0.6);
-    ctx.fillStyle = "#3a4450";
+    ctx.fillStyle = "#3a4650";
     ctx.beginPath();
-    ctx.arc(0, 0, kind === "viper" ? 4.5 : 6.5, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, kind === "viper" ? 5.2 : 7.2, kind === "viper" ? 4.4 : 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = paint;
+    ctx.beginPath();
+    ctx.ellipse(-1, 0, kind === "viper" ? 3.4 : 4.6, kind === "viper" ? 3 : 4.2, 0, 0, Math.PI * 2);
     ctx.fill();
     if (kind === "howl") {
       ctx.fillStyle = "#d5dee6";
-      ctx.fillRect(2, -5, 12, 2);
-      ctx.fillRect(2, -1, 12, 2);
-      ctx.fillRect(2, 3, 12, 2);
+      ctx.fillRect(2, -5.4, 13, 2.1);
+      ctx.fillRect(2, -1.1, 13, 2.1);
+      ctx.fillRect(2, 3.2, 13, 2.1);
     } else if (kind === "aegis") {
       ctx.fillStyle = "#d5dee6";
-      ctx.fillRect(2, -4.5, 14, 1.4);
-      ctx.fillRect(2, 3.1, 14, 1.4);
+      ctx.fillRect(2, -4.8, 15, 1.5);
+      ctx.fillRect(2, 3.3, 15, 1.5);
     } else {
-      const barrel = kind === "bastion" || ace ? 20 : kind === "viper" ? 9 : kind === "lancer" ? 16 : 13;
-      const thick = kind === "bastion" ? 3.4 : kind === "viper" ? 1.4 : 2.2;
-      ctx.fillStyle = "#d5dee6";
-      ctx.fillRect(3, -thick / 2, barrel, thick);
+      const barrel = kind === "bastion" || ace ? 22 : kind === "viper" ? 10 : kind === "lancer" ? 18 : 14;
+      const thick = kind === "bastion" ? 3.6 : kind === "viper" ? 1.5 : 2.4;
+      ctx.fillStyle = "#cfd8de";
+      ctx.fillRect(4, -thick / 2, barrel, thick);
+      ctx.fillStyle = "#1a2026";
+      ctx.fillRect(4 + barrel * 0.72, -thick * 0.7, barrel * 0.22, thick * 1.4);
     }
     if (e.flash > 0) {
       ctx.fillStyle = "#fff4d2";
       ctx.beginPath();
-      ctx.arc(kind === "howl" ? 16 : 18, 0, 2.6, 0, Math.PI * 2);
+      ctx.arc(kind === "howl" ? 17 : 20, 0, 2.8, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();

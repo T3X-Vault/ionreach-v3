@@ -763,88 +763,122 @@ export class World3D {
 
   private buildSoldier(group: THREE.Group, legs: THREE.Object3D[], kind: Kind, team: 0 | 1, tier: number): void {
     const rig = new THREE.Group();
-    rig.scale.setScalar(1.12 + (tier - 1) * 0.16);
+    rig.scale.setScalar(1.22 + (tier - 1) * 0.14);
     group.add(rig);
     const pattern = this.patterns[Math.max(0, Math.min(3, tier - 1))];
-    const clothColor = new THREE.Color(["#6a784c", "#314038", "#8d968f", "#e7eeea"][tier - 1] ?? "#6a784c");
-    if (team === 1) clothColor.lerp(new THREE.Color("#8d4d42"), 0.58);
-    if (kind === "specops") clothColor.lerp(new THREE.Color("#141a20"), 0.78);
-    if (kind === "watch") clothColor.lerp(new THREE.Color("#d2c091"), 0.62);
-    if (kind === "sergeant") clothColor.lerp(new THREE.Color("#3e4a38"), 0.25);
+    const clothColor = new THREE.Color(["#5a6b44", "#2c3a32", "#7a8680", "#dce4de"][tier - 1] ?? "#5a6b44");
+    if (team === 1) clothColor.lerp(new THREE.Color("#7a4038"), 0.62);
+    if (kind === "specops") clothColor.lerp(new THREE.Color("#10161c"), 0.82);
+    if (kind === "watch") clothColor.lerp(new THREE.Color("#c4b07a"), 0.55);
+    if (kind === "sergeant") clothColor.lerp(new THREE.Color("#3a4834"), 0.3);
     const cloth = paintMat(clothColor, pattern, tier);
-    const boot = mat("#121416", 0.55, 0.28);
-    const skin = mat(team === 1 ? "#c08868" : "#e8c6a4", 0.55, 0.02);
-    const steel = mat("#2e363c", 0.26, 0.8);
-    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.28, 0.4, team === 0 ? "#3ee0c5" : "#ff4d2e", 0.75);
-    const glass = mat("#070d10", 0.08, 0.2, tier >= 3 ? "#8fd4ff" : "#000", tier >= 3 ? 0.7 : 0);
+    const boot = mat("#0e1012", 0.62, 0.22);
+    const skin = mat(team === 1 ? "#b87a58" : "#e2b894", 0.58, 0.04);
+    const steel = mat("#3a444c", 0.22, 0.78);
+    const dark = mat("#14181c", 0.4, 0.45);
+    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.28, 0.4, team === 0 ? "#3ee0c5" : "#ff4d2e", 0.8);
+    const glass = mat("#05080c", 0.06, 0.15, tier >= 3 ? "#8fd4ff" : "#111", tier >= 3 ? 0.85 : 0.15);
+    const strap = mat("#2a2418", 0.7, 0.15);
+    // Legs with thigh / shin / boot silhouette
     const addLeg = (z: number) => {
       const hip = new THREE.Group();
-      hip.position.set(0.1, 9.1, z);
-      piece(hip, CAP, cloth, 0, -1.55, 0, 0.92, 1.55, 0.92);
-      piece(hip, CAP, boot, 0.25, -3.85, 0.1, 0.72, 0.85, 1.05);
-      piece(hip, BOX, steel, 0.45, -4.45, 0.05, 1.45, 0.32, 0.82, false);
-      if (tier >= 2) piece(hip, BOX, steel, 0.15, -2.4, 0, 1.15, 0.7, 0.95, false);
-      if (tier >= 4) piece(hip, BOX, accent, 0.2, -1.4, z > 0 ? 0.55 : -0.55, 0.2, 1.1, 0.35, false);
+      hip.position.set(0.15, 8.6, z);
+      piece(hip, CAP, cloth, 0, -0.2, 0, 1.05, 1.15, 1.05);
+      piece(hip, CAP, cloth, 0.05, -2.35, 0.05, 0.82, 1.55, 0.88);
+      piece(hip, CAP, boot, 0.35, -4.35, 0.15, 0.78, 0.95, 1.15);
+      piece(hip, BOX, dark, 0.7, -5.05, 0.1, 1.7, 0.38, 0.95, false);
+      if (tier >= 2) piece(hip, BOX, steel, 0.2, -1.55, 0, 1.25, 0.55, 1.05, false);
+      if (tier >= 3) piece(hip, BOX, dark, 0.15, -3.2, z > 0 ? 0.55 : -0.55, 0.85, 1.1, 0.28, false);
+      if (tier >= 4) piece(hip, BOX, accent, 0.25, -0.85, z > 0 ? 0.62 : -0.62, 0.18, 1.2, 0.32, false);
       rig.add(hip);
       legs.push(hip);
     };
-    addLeg(-1.28);
-    addLeg(1.28);
-    piece(rig, CAP, cloth, 0, 12.2, 0, 1.95, 2.15, 1.15);
-    piece(rig, BOX, steel, 0.45, 12.8, 0, 2.15, 2.35, 0.38);
-    piece(rig, BOX, accent, 1.15, 13.5, 1.05, 0.18, 0.7, 0.55);
-    if (tier >= 2) piece(rig, BOX, mat("#161c18", 0.48, 0.35), -1.25, 13.1, 0, 1.05, 2.5, 1.75);
-    if (tier >= 3) {
-      piece(rig, BOX, steel, 0.1, 14.15, 1.55, 1.35, 0.55, 0.55);
-      piece(rig, BOX, steel, 0.1, 14.15, -1.55, 1.35, 0.55, 0.55);
+    addLeg(-1.35);
+    addLeg(1.35);
+    // Pelvis + plate carrier torso
+    piece(rig, BOX, cloth, 0.05, 9.55, 0, 2.2, 1.35, 1.55);
+    piece(rig, BOX, cloth, 0.1, 12.1, 0, 2.55, 3.4, 1.85);
+    piece(rig, BOX, steel, 0.55, 12.55, 0, 2.35, 2.85, 0.42);
+    piece(rig, BOX, strap, -0.35, 13.35, 0.95, 0.28, 2.4, 0.18, false);
+    piece(rig, BOX, strap, -0.35, 13.35, -0.95, 0.28, 2.4, 0.18, false);
+    piece(rig, BOX, accent, 1.45, 13.85, 0.85, 0.16, 0.85, 0.55, false);
+    if (tier >= 2) {
+      piece(rig, BOX, dark, -1.35, 12.85, 0, 1.15, 2.9, 1.95);
+      piece(rig, BOX, steel, -1.55, 14.35, 0, 0.55, 0.85, 1.35, false);
     }
-    if (tier >= 4) piece(rig, CYL, mat("#e7eef2", 0.3, 0.55, "#9ad7ff", 0.45), -0.3, 16.4, -1.35, 0.12, 2.4, 0.12, false);
-    const addArm = (z: number, reach: number) => {
+    if (tier >= 3) {
+      piece(rig, BOX, steel, 0.2, 14.55, 1.65, 1.45, 0.65, 0.55);
+      piece(rig, BOX, steel, 0.2, 14.55, -1.65, 1.45, 0.65, 0.55);
+      piece(rig, BOX, dark, 0.85, 11.35, 1.15, 0.85, 1.1, 0.55, false);
+    }
+    if (tier >= 4) piece(rig, CYL, mat("#e7eef2", 0.28, 0.55, "#9ad7ff", 0.5), -0.45, 16.85, -1.45, 0.1, 2.6, 0.1, false);
+    // Arms
+    const addArm = (z: number, aim: boolean) => {
       const limb = new THREE.Group();
-      limb.position.set(0.35, 14.15, z);
-      piece(limb, CAP, cloth, reach * 0.35, -1.05, 0, 0.46, 1.05, 0.46);
-      piece(limb, SPHERE, steel, reach, -1.85, 0, 0.38, 0.38, 0.38, false);
+      limb.position.set(0.45, 14.35, z);
+      if (aim) limb.rotation.z = -0.55;
+      piece(limb, CAP, cloth, 0.15, -0.35, 0, 0.55, 1.15, 0.55);
+      piece(limb, CAP, cloth, aim ? 1.15 : 0.45, aim ? -1.35 : -2.05, 0, 0.48, 1.25, 0.48);
+      piece(limb, SPHERE, skin, aim ? 2.05 : 0.65, aim ? -2.05 : -3.15, 0, 0.42, 0.42, 0.42, false);
+      if (tier >= 2) piece(limb, BOX, steel, aim ? 0.75 : 0.35, aim ? -0.85 : -1.35, 0, 0.95, 0.55, 0.7, false);
       rig.add(limb);
       legs.push(limb);
     };
-    addArm(2.05, 0.85);
-    addArm(-2.05, 0.2);
-    piece(rig, SPHERE, skin, 0.55, 16.35, 0, 1.05, 1.15, 1.05, false);
-    piece(rig, SPHERE, cloth, 0.2, 17.15, 0, 1.38, 0.95, 1.38);
-    piece(rig, BOX, glass, 1.2, 16.7, 0, 0.18, 0.38, 1.25, false);
+    addArm(2.15, true);
+    addArm(-2.15, false);
+    // Head + helmet
+    piece(rig, SPHERE, skin, 0.55, 16.55, 0, 1.05, 1.15, 1.05, false);
+    piece(rig, SPHERE, cloth, 0.25, 17.35, 0, 1.45, 1.05, 1.45);
+    piece(rig, BOX, dark, 0.35, 16.95, 0, 1.55, 0.55, 1.55, false);
+    piece(rig, BOX, glass, 1.35, 16.85, 0, 0.2, 0.42, 1.35, false);
+    piece(rig, BOX, dark, 1.15, 17.55, 0, 0.85, 0.35, 1.55, false);
     if (kind === "sergeant") {
-      piece(rig, CYL, mat("#e8c56b", 0.28, 0.7), -0.15, 19.1, 0, 0.07, 2.6, 0.07, false);
-      piece(rig, BOX, accent, -0.15, 20.35, 0.4, 0.08, 0.7, 1.15, false);
+      piece(rig, CYL, mat("#e8c56b", 0.28, 0.72), -0.2, 19.35, 0, 0.08, 2.8, 0.08, false);
+      piece(rig, BOX, accent, -0.2, 20.7, 0.45, 0.1, 0.75, 1.25, false);
+      piece(rig, BOX, mat("#e8c56b", 0.3, 0.65), 1.2, 13.55, 0.95, 0.12, 0.55, 0.85, false);
+      piece(rig, BOX, mat("#e8c56b", 0.3, 0.65), 1.2, 12.85, 0.95, 0.12, 0.55, 0.85, false);
     }
-    if (kind === "specops") piece(rig, BOX, mat("#070b0e", 0.3, 0.45), 1.28, 16.75, 0, 0.16, 0.32, 1.55, false);
-    if (kind === "watch") piece(rig, CYL, steel, 1.85, 16.75, 0, 0.32, 0.42, 0.85, false).rotation.z = Math.PI / 2;
+    if (kind === "specops") {
+      piece(rig, BOX, mat("#05080c", 0.25, 0.4), 1.42, 16.9, 0, 0.18, 0.38, 1.7, false);
+      piece(rig, BOX, mat("#7dffb2", 0.2, 0.5, "#7dffb2", 1.1), 1.55, 16.95, 0.35, 0.08, 0.18, 0.35, false);
+    }
+    if (kind === "watch") piece(rig, CYL, steel, 1.95, 16.9, 0, 0.35, 0.5, 0.95, false).rotation.z = Math.PI / 2;
+    // Weapon
     const gun = new THREE.Group();
-    gun.position.set(1.15, 12.45, 1.05);
+    gun.position.set(1.55, 12.85, 1.15);
+    gun.rotation.z = -0.12;
     const rocket = kind === "rocket";
     const nade = kind === "grenadier";
-    const length = rocket ? 10 : nade ? 6.4 : 6.2 + tier * 0.9;
-    const thick = rocket ? 0.58 : nade ? 0.42 : 0.18 + tier * 0.03;
-    piece(gun, CYL, steel, length * 0.46, 0.12, 0, thick, length, thick).rotation.z = -Math.PI / 2;
-    piece(gun, BOX, mat("#2c261e", 0.62, 0.22), -0.15, -0.2, 0, 2.3, 0.8, 0.5, false);
-    piece(gun, BOX, mat("#141814", 0.5, 0.3), 0.35, -0.85, 0, 0.45, 1.05, 0.38, false);
-    if (tier >= 2) piece(gun, BOX, steel, length * 0.22, 0.5, 0, 1.5, 0.22, 0.24, false);
-    if (tier >= 3) piece(gun, BOX, mat("#101418", 0.25, 0.35, "#9ad7ff", 0.8), length * 0.28, 0.78, 0, 0.7, 0.32, 0.38, false);
-    if (tier >= 4) piece(gun, CYL, mat("#dffffa", 0.2, 0.4, "#3ee0c5", 0.9), length * 0.72, 0.12, 0, thick * 0.35, 1.4, thick * 0.35).rotation.z = -Math.PI / 2;
-    if (nade) piece(gun, SPHERE, mat("#2a6a38", 0.45, 0.2), 2.2, 0.65, 0, 0.65, 0.65, 0.65, false);
+    const length = rocket ? 11.5 : nade ? 7.2 : 8.4 + tier * 0.7;
+    const thick = rocket ? 0.62 : nade ? 0.45 : 0.22 + tier * 0.02;
+    piece(gun, BOX, mat("#2a2218", 0.65, 0.2), -0.35, -0.15, 0, 2.6, 0.95, 0.55, false);
+    piece(gun, BOX, dark, 0.55, -0.95, 0, 0.55, 1.25, 0.4, false);
+    piece(gun, CYL, steel, length * 0.48, 0.15, 0, thick, length, thick).rotation.z = -Math.PI / 2;
+    piece(gun, CYL, dark, length * 0.08, 0.15, 0, thick * 1.35, 1.6, thick * 1.35, false).rotation.z = -Math.PI / 2;
+    piece(gun, BOX, steel, length * 0.18, 0.55, 0, 1.8, 0.28, 0.32, false);
+    if (tier >= 3) piece(gun, BOX, mat("#0c1014", 0.22, 0.4, "#9ad7ff", 0.9), length * 0.32, 0.85, 0, 0.85, 0.38, 0.42, false);
+    if (tier >= 4) piece(gun, CYL, mat("#dffffa", 0.2, 0.45, "#3ee0c5", 1), length * 0.78, 0.15, 0, thick * 0.4, 1.6, thick * 0.4).rotation.z = -Math.PI / 2;
+    if (nade) piece(gun, SPHERE, mat("#2a6a38", 0.45, 0.22), 2.6, 0.75, 0, 0.7, 0.7, 0.7, false);
+    if (rocket) {
+      piece(gun, CYL, dark, length * 0.55, 0.15, 0, 0.85, 2.4, 0.85, false).rotation.z = -Math.PI / 2;
+      piece(gun, CONE, mat("#d25a32", 0.4, 0.3, "#ff6a3a", 0.4), length * 0.82, 0.15, 0, 0.55, 1.4, 0.55, false).rotation.z = -Math.PI / 2;
+    }
     rig.add(gun);
     if (rocket) {
-      piece(rig, CYL, mat("#343a34", 0.45, 0.4), -1.55, 13.5, -0.15, 0.5, 4.8, 0.65);
-      piece(rig, CONE, mat("#d25a32", 0.4, 0.3, "#ff6a3a", 0.35), length * 0.55 + 1.2, 12.55, 1.05, 0.4, 1.2, 0.4, false);
+      piece(rig, CYL, mat("#2e3430", 0.45, 0.4), -1.75, 13.35, -0.2, 0.55, 5.2, 0.72);
+      piece(rig, BOX, strap, -0.85, 14.2, -0.15, 1.6, 0.25, 0.35, false);
     }
     if (kind === "patrol") {
       const dog = new THREE.Group();
-      dog.position.set(2.4, 0, 5.2);
-      piece(dog, CAP, mat("#6b513a", 0.78, 0.04), 0, 2.5, 0, 1.05, 1.25, 0.72, false);
-      piece(dog, SPHERE, mat("#241c14", 0.7, 0.04), 1.7, 3.35, 0, 0.78, 0.7, 0.7, false);
-      piece(dog, CAP, mat("#6b513a", 0.78, 0.04), 0.2, 1.15, 0.55, 0.22, 0.7, 0.22, false);
-      piece(dog, CAP, mat("#6b513a", 0.78, 0.04), -0.5, 1.7, 0, 0.18, 0.85, 0.18, false);
+      dog.position.set(2.8, 0, 5.4);
+      piece(dog, CAP, mat("#6b513a", 0.78, 0.05), 0.2, 2.55, 0, 1.15, 1.45, 0.78, false);
+      piece(dog, SPHERE, mat("#241c14", 0.7, 0.05), 1.85, 3.45, 0, 0.82, 0.72, 0.72, false);
+      piece(dog, CAP, mat("#6b513a", 0.78, 0.05), 0.35, 1.05, 0.65, 0.24, 0.85, 0.24, false);
+      piece(dog, CAP, mat("#6b513a", 0.78, 0.05), 0.35, 1.05, -0.65, 0.24, 0.85, 0.24, false);
+      piece(dog, CAP, mat("#6b513a", 0.78, 0.05), -0.85, 1.85, 0, 0.2, 1.05, 0.2, false);
       rig.add(dog);
     }
+    if (kind === "grenadier") piece(rig, SPHERE, mat("#2a4a28", 0.5, 0.2), -1.55, 11.55, 1.25, 0.85, 0.85, 0.85, false);
   }
 
   private addTracks(group: THREE.Group, len: number, wid: number, rubber: THREE.Material, steel: THREE.Material, skirt: THREE.Material | null): void {
@@ -879,7 +913,7 @@ export class World3D {
     const spec = vehicleSpec(kind);
     const bulk = 1 + (tier - 1) * 0.13;
     const pattern = this.patterns[Math.max(0, Math.min(3, tier - 1))];
-    const paint = new THREE.Color(spec.paint).lerp(new THREE.Color(["#4e5842", "#24342c", "#727c78", "#e8efeb"][tier - 1] ?? spec.paint), 0.8);
+    const paint = new THREE.Color(spec.paint).lerp(new THREE.Color(["#556348", "#2a3a30", "#7a8680", "#eef2ec"][tier - 1] ?? spec.paint), 0.75);
     if (team === 1) paint.lerp(new THREE.Color("#9a5348"), 0.5);
     const hullMat = paintMat(paint, pattern, tier);
     const dark = mat("#12161a", 0.46, 0.5);
@@ -888,20 +922,31 @@ export class World3D {
     const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.3, 0.35, team === 0 ? "#3ee0c5" : "#ff4d2e", 0.6);
     const len = spec.len * bulk;
     const wid = spec.wid * bulk;
-    const hullH = (kind === "bastion" ? 6.6 : kind === "viper" ? 4.1 : 5.5) + tier * 0.28;
-    const hull = new THREE.Mesh(hullShape(len, wid * 0.58, hullH, kind === "viper" ? 0.36 : kind === "bastion" ? 0.62 : 0.5), hullMat);
+    const hullH = (kind === "bastion" ? 7.1 : kind === "viper" ? 4.35 : 5.85) + tier * 0.28;
+    const hull = new THREE.Mesh(hullShape(len, wid * 0.62, hullH, kind === "viper" ? 0.42 : kind === "bastion" ? 0.7 : 0.58), hullMat);
     hull.castShadow = true;
     hull.receiveShadow = true;
-    hull.position.y = kind === "viper" ? 2.55 : 2.15;
+    hull.position.y = kind === "viper" ? 2.7 : 2.35;
     group.add(hull);
+    // Glacis / nose plate
+    const nose = piece(group, BOX, hullMat, len * 0.38, kind === "viper" ? 3.35 : 3.55, 0, len * 0.28, hullH * 0.55, wid * 0.52);
+    nose.rotation.z = -0.38;
+    piece(group, BOX, dark, len * 0.42, kind === "viper" ? 3.1 : 3.25, 0, len * 0.08, hullH * 0.22, wid * 0.48, false);
     if (kind === "viper") this.addWheels(group, len, wid, rubber, steel);
     else this.addTracks(group, len, wid, rubber, steel, tier >= 2 ? dark : null);
-    piece(group, BOX, dark, 0, 4.15, wid * 0.34, len * 0.72, 0.32, 1.15, false);
-    piece(group, BOX, dark, 0, 4.15, -wid * 0.34, len * 0.72, 0.32, 1.15, false);
-    piece(group, SPHERE, mat("#f7f6ea", 0.18, 0.1, "#fff4c8", 0.9), len * 0.46, 3.15, wid * 0.14, 0.5, 0.45, 0.5, false);
-    piece(group, SPHERE, mat("#f7f6ea", 0.18, 0.1, "#fff4c8", 0.9), len * 0.46, 3.15, -wid * 0.14, 0.5, 0.45, 0.5, false);
-    piece(group, CYL, dark, -len * 0.4, 4.4, wid * 0.1, 0.32, 1.5, 0.32, false).rotation.z = Math.PI / 2;
-    piece(group, BOX, accent, -len * 0.02, hullH + 1.05, 0, len * 0.16, 0.16, 1.4, false);
+    // Side skirts / stowage
+    piece(group, BOX, dark, 0, 4.35, wid * 0.36, len * 0.78, 0.38, 1.25, false);
+    piece(group, BOX, dark, 0, 4.35, -wid * 0.36, len * 0.78, 0.38, 1.25, false);
+    piece(group, BOX, hullMat, -len * 0.08, 4.85, wid * 0.38, len * 0.42, 0.85, 0.55, false);
+    piece(group, BOX, hullMat, -len * 0.08, 4.85, -wid * 0.38, len * 0.42, 0.85, 0.55, false);
+    piece(group, SPHERE, mat("#f7f6ea", 0.18, 0.1, "#fff4c8", 1), len * 0.48, 3.35, wid * 0.16, 0.55, 0.48, 0.55, false);
+    piece(group, SPHERE, mat("#f7f6ea", 0.18, 0.1, "#fff4c8", 1), len * 0.48, 3.35, -wid * 0.16, 0.55, 0.48, 0.55, false);
+    piece(group, CYL, dark, -len * 0.42, 4.65, wid * 0.12, 0.36, 1.7, 0.36, false).rotation.z = Math.PI / 2;
+    piece(group, BOX, accent, -len * 0.02, hullH + 1.15, 0, len * 0.2, 0.18, 1.55, false);
+    if (kind === "t3x" || kind === "lancer" || kind === "bastion") {
+      piece(group, BOX, dark, len * 0.12, hullH * 0.55, wid * 0.28, 2.2, 1.1, 0.35, false);
+      piece(group, BOX, dark, len * 0.12, hullH * 0.55, -wid * 0.28, 2.2, 1.1, 0.35, false);
+    }
     if (tier >= 3) {
       piece(group, BOX, mat("#6a5840", 0.4, 0.5), -len * 0.02, hullH + 1.65, wid * 0.12, 3.1, 0.4, wid * 0.18, false);
       piece(group, BOX, mat("#6a5840", 0.4, 0.5), len * 0.12, hullH + 1.65, -wid * 0.08, 2.6, 0.4, wid * 0.16, false);
@@ -1307,12 +1352,12 @@ export class World3D {
 }
 
 function vehicleSpec(kind: Kind): { len: number; wid: number; turret: number; barrel: number; thick: number; paint: string } {
-  if (kind === "viper") return { len: 28, wid: 15, turret: 7.5, barrel: 11, thick: 0.55, paint: "#3a4650" };
-  if (kind === "lancer") return { len: 40, wid: 20, turret: 11, barrel: 20, thick: 0.85, paint: "#3c4a40" };
-  if (kind === "reaver") return { len: 42, wid: 22, turret: 12, barrel: 15, thick: 1.15, paint: "#2a3830" };
-  if (kind === "howl") return { len: 40, wid: 22, turret: 12, barrel: 14, thick: 0.9, paint: "#3d4a32" };
-  if (kind === "aegis") return { len: 40, wid: 22, turret: 11, barrel: 16, thick: 0.6, paint: "#1e4048" };
-  if (kind === "bastion") return { len: 54, wid: 26, turret: 14, barrel: 24, thick: 1.35, paint: "#4a3428" };
-  if (kind === "t3x") return { len: 50, wid: 24, turret: 13, barrel: 22, thick: 1.05, paint: "#6a5a32" };
-  return { len: 36, wid: 18, turret: 9, barrel: 10, thick: 0.7, paint: "#3a4650" };
+  if (kind === "viper") return { len: 30, wid: 16, turret: 8.2, barrel: 12.5, thick: 0.62, paint: "#3e4c56" };
+  if (kind === "lancer") return { len: 44, wid: 21, turret: 12, barrel: 22, thick: 0.95, paint: "#3f4e42" };
+  if (kind === "reaver") return { len: 44, wid: 23, turret: 12.5, barrel: 16, thick: 1.25, paint: "#2c3c34" };
+  if (kind === "howl") return { len: 42, wid: 23, turret: 12.5, barrel: 15, thick: 0.95, paint: "#424e36" };
+  if (kind === "aegis") return { len: 42, wid: 23, turret: 11.5, barrel: 17, thick: 0.65, paint: "#1f4650" };
+  if (kind === "bastion") return { len: 58, wid: 28, turret: 15, barrel: 26, thick: 1.45, paint: "#52382c" };
+  if (kind === "t3x") return { len: 54, wid: 26, turret: 14, barrel: 24, thick: 1.15, paint: "#746236" };
+  return { len: 38, wid: 19, turret: 9.5, barrel: 11, thick: 0.75, paint: "#3e4c56" };
 }
