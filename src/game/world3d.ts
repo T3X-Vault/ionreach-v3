@@ -222,6 +222,7 @@ export class World3D {
   private patterns: THREE.CanvasTexture[];
   private panels: THREE.CanvasTexture;
   private grit: THREE.CanvasTexture;
+  private dustVeil: THREE.Mesh;
 
   constructor(canvas: HTMLCanvasElement) {
     const small = Math.min(window.innerWidth || 1280, window.innerHeight || 800) < 760;
@@ -283,6 +284,21 @@ export class World3D {
     this.scene.add(this.boxMesh);
     this.viewGun = new THREE.Group();
     this.camera.add(this.viewGun);
+    this.dustVeil = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.4, 1.5),
+      new THREE.MeshBasicMaterial({
+        color: "#c48448",
+        transparent: true,
+        opacity: 0,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    this.dustVeil.position.z = -0.85;
+    this.dustVeil.renderOrder = 999;
+    this.dustVeil.visible = false;
+    this.camera.add(this.dustVeil);
     this.scene.add(this.camera);
     this.scene.fog = new THREE.Fog("#8aa0b0", 280, 2400);
     this.composer = new EffectComposer(this.renderer);
@@ -377,12 +393,35 @@ export class World3D {
     shadow.bottom = -640;
     shadow.updateProjectionMatrix();
     const fog = this.scene.fog as THREE.Fog;
+    const dusty = chapterById(sim.chapterId).dust;
     if (glance === "eye") {
-      fog.near = 18;
-      fog.far = 680;
+      fog.near = dusty ? 8 : 18;
+      fog.far = dusty ? 320 : 680;
+    } else if (dusty) {
+      fog.near = 80;
+      fog.far = 980 / Math.max(0.55, cam.z);
     } else {
       fog.near = 360;
       fog.far = 2600 / Math.max(0.55, cam.z);
+    }
+    const gust = 0.55 + 0.45 * Math.sin(sim.time * 0.7);
+    const storm = this.scene.getObjectByName("land")?.getObjectByName("dustStorm");
+    if (storm) {
+      storm.children.forEach((child, i) => {
+        const sheet = child as THREE.Mesh;
+        const mat = sheet.material as THREE.MeshBasicMaterial;
+        const phase = (sheet.userData.phase as number) ?? i;
+        sheet.position.x = ((sim.time * (70 + i * 18) + phase * 120) % (WORLD_W * 1.6)) - WORLD_W * 0.3;
+        sheet.position.y = 16 + i * 12 + Math.sin(sim.time * 1.2 + phase) * 4;
+        mat.opacity = 0.22 + gust * 0.28 + (i % 3) * 0.04;
+      });
+    }
+    this.dustVeil.visible = dusty && !cinematic;
+    if (dusty) {
+      const veilMat = this.dustVeil.material as THREE.MeshBasicMaterial;
+      veilMat.opacity = 0.16 + gust * 0.14;
+      this.dustVeil.position.x = Math.sin(sim.time * 0.55) * 0.04;
+      this.dustVeil.position.y = Math.cos(sim.time * 0.4) * 0.02;
     }
     this.viewGun.visible = glance === "eye" && !!eye;
     if (eye) this.dressViewGun(eye, sim);
@@ -496,7 +535,7 @@ export class World3D {
       (shader.uniforms.top.value as THREE.Color).set(chapter.sky[0]);
       (shader.uniforms.horizon.value as THREE.Color).set(chapter.sky[1]);
     }
-    (this.scene.fog as THREE.Fog).color.set(chapter.snow ? "#d5dde4" : chapter.sky[1]);
+    (this.scene.fog as THREE.Fog).color.set(chapter.dust ? "#c48a52" : chapter.snow ? "#d5dde4" : chapter.sky[1]);
     const positions: number[] = [];
     const colors: number[] = [];
     const indices: number[] = [];
@@ -586,9 +625,31 @@ export class World3D {
       transparent: true,
       depthWrite: false,
       vertexShader: "attribute float alpha; varying float vA; void main(){ vA=alpha; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
-      fragmentShader: "varying float vA; void main(){ gl_FragColor=vec4(0.01,0.014,0.02,vA); }",
+      fragmentShader: chapter.dust
+        ? "varying float vA; void main(){ gl_FragColor=vec4(0.42,0.26,0.12,vA*0.92); }"
+        : "varying float vA; void main(){ gl_FragColor=vec4(0.01,0.014,0.02,vA); }",
     });
     land.add(this.fogMesh);
+    if (chapter.dust) {
+      const storm = new THREE.Group();
+      storm.name = "dustStorm";
+      const gritMat = new THREE.MeshBasicMaterial({
+        color: "#d2a066",
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      for (let i = 0; i < 7; i++) {
+        const sheet = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_W * 1.4, 180 + i * 28), gritMat.clone());
+        sheet.rotation.x = -Math.PI / 2.4;
+        sheet.position.set(WORLD_W * 0.5, 18 + i * 14, WORLD_H * (0.15 + i * 0.12));
+        sheet.userData.dustSheet = true;
+        sheet.userData.phase = i * 1.7;
+        storm.add(sheet);
+      }
+      land.add(storm);
+    }
     this.plant(sim, land, chapter.canopy, chapter.trunk, chapter.snow);
     this.scene.add(land);
   }
@@ -686,11 +747,12 @@ export class World3D {
 
   private syncFog(sim: Sim, cinematic: boolean): void {
     const data = this.fogAlpha.array as Float32Array;
+    const dusty = chapterById(sim.chapterId).dust;
     for (let r = 0; r <= ROWS; r++) {
       for (let c = 0; c <= COLS; c++) {
         const seen = sim.explored[clamp(r, 0, ROWS - 1) * COLS + clamp(c, 0, COLS - 1)];
         const live = sim.visible[clamp(r, 0, ROWS - 1) * COLS + clamp(c, 0, COLS - 1)];
-        data[r * (COLS + 1) + c] = cinematic ? 0 : live ? 0 : seen ? 0.42 : 0.9;
+        data[r * (COLS + 1) + c] = cinematic ? 0 : live ? (dusty ? 0.12 : 0) : seen ? (dusty ? 0.55 : 0.42) : dusty ? 0.95 : 0.9;
       }
     }
     this.fogAlpha.needsUpdate = true;
@@ -1265,23 +1327,25 @@ export class World3D {
 
   private syncSparks(sim: Sim): void {
     const list = sim.particles;
-    while (this.sparks.length < list.length && this.sparks.length < 140) {
+    while (this.sparks.length < list.length && this.sparks.length < 220) {
       const mesh = new THREE.Mesh(SPHERE, mat("#fff", 1, 0));
       this.scene.add(mesh);
       this.sparks.push(mesh);
     }
     this.sparks.forEach((mesh, i) => {
       const p = list[i];
-      mesh.visible = !!p && i < 140;
-      if (!p || i >= 140) return;
+      mesh.visible = !!p && i < 220;
+      if (!p || i >= 220) return;
       const a = Math.max(0, p.life / p.max);
-      mesh.position.set(p.x, this.elevation(p.x, p.y) + (1 - a) * (p.kind === "smoke" ? 22 : 8), p.y);
-      mesh.scale.setScalar(p.size * (p.kind === "smoke" ? 1.6 : a) * 0.85);
+      const dust = p.kind === "dust";
+      mesh.position.set(p.x, this.elevation(p.x, p.y) + (dust ? 4 + (1 - a) * 18 : (1 - a) * (p.kind === "smoke" ? 22 : 8)), p.y);
+      mesh.scale.setScalar(p.size * (dust ? 1.35 + (1 - a) * 1.1 : p.kind === "smoke" ? 1.6 : a) * 0.85);
       const material = mesh.material as THREE.MeshStandardMaterial;
-      material.color.set(p.color);
-      material.emissive.set(p.kind === "smoke" ? "#000" : p.color);
-      material.opacity = p.kind === "smoke" ? a * 0.4 : a;
+      material.color.set(dust ? "#c9955a" : p.color);
+      material.emissive.set(p.kind === "smoke" ? "#000" : dust ? "#8a5a28" : p.color);
+      material.opacity = dust ? a * 0.72 : p.kind === "smoke" ? a * 0.4 : a;
       material.transparent = true;
+      material.depthWrite = false;
     });
   }
 

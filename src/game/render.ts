@@ -204,6 +204,7 @@ export class Renderer {
       ctx.globalAlpha = 1;
     }
     if (!cinematic && this.fog && this.fctx) {
+      const dusty = chapterById(sim.chapterId).dust;
       const img = this.fctx;
       const data = img.getImageData(0, 0, COLS, ROWS);
       const px = data.data;
@@ -212,15 +213,15 @@ export class Renderer {
         if (sim.visible[i]) {
           px[o + 3] = 0;
         } else if (sim.explored[i]) {
-          px[o] = 6;
-          px[o + 1] = 8;
-          px[o + 2] = 12;
-          px[o + 3] = 120;
+          px[o] = dusty ? 72 : 6;
+          px[o + 1] = dusty ? 42 : 8;
+          px[o + 2] = dusty ? 18 : 12;
+          px[o + 3] = dusty ? 150 : 120;
         } else {
-          px[o] = 4;
-          px[o + 1] = 5;
-          px[o + 2] = 8;
-          px[o + 3] = 235;
+          px[o] = dusty ? 48 : 4;
+          px[o + 1] = dusty ? 28 : 5;
+          px[o + 2] = dusty ? 12 : 8;
+          px[o + 3] = dusty ? 220 : 235;
         }
       }
       img.putImageData(data, 0, 0);
@@ -243,6 +244,7 @@ export class Renderer {
       ctx.restore();
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.drawDustStorm(ctx, sim, viewW, viewH, cam);
     this.stampCallsigns(ctx, sim, cam, viewW, viewH);
   }
 
@@ -394,17 +396,55 @@ export class Renderer {
   private drawParticle(ctx: CanvasRenderingContext2D, p: { x: number; y: number; life: number; max: number; size: number; color: string; kind: string }): void {
     const a = Math.max(0, p.life / p.max);
     ctx.save();
-    ctx.globalAlpha = a;
     if (p.kind === "ring") {
+      ctx.globalAlpha = a;
       ctx.strokeStyle = p.color;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size * (1.4 - a), 0, Math.PI * 2);
       ctx.stroke();
+    } else if (p.kind === "dust") {
+      ctx.globalAlpha = Math.min(0.85, a * 0.9);
+      const w = p.size * (1.6 + (1 - a) * 1.8);
+      const h = p.size * (0.45 + (1 - a) * 0.35);
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, w);
+      g.addColorStop(0, "rgba(220,160,95,0.75)");
+      g.addColorStop(0.45, "rgba(170,110,55,0.4)");
+      g.addColorStop(1, "rgba(120,70,35,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, w, h, -0.35, 0, Math.PI * 2);
+      ctx.fill();
     } else {
+      ctx.globalAlpha = a;
       ctx.fillStyle = p.color;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size * (p.kind === "smoke" ? 1.4 - a * 0.3 : a), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  private drawDustStorm(ctx: CanvasRenderingContext2D, sim: Sim, viewW: number, viewH: number, cam: Cam): void {
+    const chapter = chapterById(sim.chapterId);
+    if (!chapter.dust) return;
+    const gust = 0.55 + 0.45 * Math.sin(sim.time * 0.7) * Math.sin(sim.time * 0.19);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const veil = ctx.createLinearGradient(0, 0, viewW, viewH * 0.35);
+    veil.addColorStop(0, `rgba(190,120,60,${0.12 + gust * 0.1})`);
+    veil.addColorStop(0.5, `rgba(150,90,40,${0.18 + gust * 0.12})`);
+    veil.addColorStop(1, `rgba(110,60,28,${0.1 + gust * 0.08})`);
+    ctx.fillStyle = veil;
+    ctx.fillRect(0, 0, viewW, viewH);
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 18; i++) {
+      const drift = ((sim.time * (90 + i * 17) + i * 140) % (viewW + 220)) - 110;
+      const y = ((i * 97 + Math.sin(sim.time * 1.1 + i) * 30 + cam.y * 0.02) % viewH + viewH) % viewH;
+      ctx.globalAlpha = 0.08 + gust * 0.1 + (i % 4) * 0.02;
+      ctx.fillStyle = i % 3 === 0 ? "#e0b070" : "#c48448";
+      ctx.beginPath();
+      ctx.ellipse(drift, y, 90 + i * 6, 8 + (i % 5), -0.28, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
