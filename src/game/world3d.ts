@@ -1312,19 +1312,32 @@ export class World3D {
     g.add(corners);
     const bar = new THREE.Group();
     bar.name = "hp";
+    // Fat C&C-style HP plate — must read at long tactical camera distance.
     const bg = new THREE.Mesh(
-      new THREE.PlaneGeometry(20, 3.4),
+      new THREE.PlaneGeometry(28, 6.2),
       new THREE.MeshBasicMaterial({
         color: "#05070a",
         depthTest: false,
         transparent: true,
-        opacity: 0.92,
+        opacity: 0.95,
         depthWrite: false,
         side: THREE.DoubleSide,
       }),
     );
+    const rim = new THREE.Mesh(
+      new THREE.PlaneGeometry(28.6, 6.8),
+      new THREE.MeshBasicMaterial({
+        color: "#c8d0d4",
+        depthTest: false,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    rim.position.z = -0.04;
     const fill = new THREE.Mesh(
-      new THREE.PlaneGeometry(18.4, 2.2),
+      new THREE.PlaneGeometry(25.5, 4.2),
       new THREE.MeshBasicMaterial({
         color: "#3ee0c5",
         depthTest: false,
@@ -1333,10 +1346,11 @@ export class World3D {
       }),
     );
     fill.name = "fill";
-    fill.position.z = 0.08;
+    fill.position.z = 0.1;
+    rim.renderOrder = 20;
     bg.renderOrder = 21;
     fill.renderOrder = 22;
-    bar.add(bg, fill);
+    bar.add(rim, bg, fill);
     bar.position.y = 22;
     g.add(bar);
     return g;
@@ -1366,15 +1380,16 @@ export class World3D {
       const bar = mark.getObjectByName("hp");
       if (bar) {
         const ratio = Math.max(0.05, unit.hp / Math.max(1, unit.maxHp));
-        const baseY = DEFS[unit.kind].building ? 36 : DEFS[unit.kind].air ? 18 : 26;
-        bar.position.y = baseY * Math.max(0.85, Math.min(1.8, scale * 0.45));
-        bar.scale.set(Math.max(0.85, Math.min(2.4, scale * 0.55)), 1, 1);
+        const baseY = DEFS[unit.kind].building ? 42 : DEFS[unit.kind].air ? 22 : 30;
+        bar.position.y = baseY * Math.max(0.9, Math.min(2.1, scale * 0.5));
+        const barScale = Math.max(1.15, Math.min(3.2, scale * 0.7));
+        bar.scale.set(barScale, barScale, 1);
         // Billboard toward camera (DoubleSide + lookAt so bars stay readable).
         bar.lookAt(this.camera.position);
         const fill = bar.getObjectByName("fill") as THREE.Mesh | undefined;
         if (fill) {
           fill.scale.x = ratio;
-          fill.position.x = (ratio - 1) * 9.2;
+          fill.position.x = (ratio - 1) * 12.75;
           const mat = fill.material as THREE.MeshBasicMaterial;
           mat.color.set(ratio > 0.55 ? teamColor : ratio > 0.28 ? "#e8c56b" : "#ff5a36");
         }
