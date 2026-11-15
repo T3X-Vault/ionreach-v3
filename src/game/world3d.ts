@@ -387,11 +387,11 @@ export class World3D {
       );
       return;
     }
-    // Steeper isometric-style pitch — closer to classic C&C tactical view.
-    const dist = 920 / Math.max(0.4, cam.z);
-    const pitch = 1.18;
+    // Classic C&C-ish isometric: high enough to read the board, low enough to keep silhouettes.
+    const dist = 880 / Math.max(0.4, cam.z);
+    const pitch = 1.02;
     this.camera.position.set(cam.x + (Math.random() - 0.5) * shake * 8, Math.sin(pitch) * dist, cam.y + Math.cos(pitch) * dist);
-    this.camera.lookAt(cam.x, 4, cam.y);
+    this.camera.lookAt(cam.x, 6, cam.y);
   }
 
   private dressViewGun(eye: Ent, sim: Sim): void {
@@ -743,8 +743,8 @@ export class World3D {
 
   private buildSoldier(group: THREE.Group, legs: THREE.Object3D[], kind: Kind, team: 0 | 1, tier: number): void {
     const rig = new THREE.Group();
-    // Oversized RTS infantry so they read at steeper C&C zoom.
-    rig.scale.setScalar(1.42 + (tier - 1) * 0.12);
+    // Oversized RTS infantry so they read at C&C tactical zoom.
+    rig.scale.setScalar(1.65 + (tier - 1) * 0.14);
     group.add(rig);
     const pattern = this.patterns[Math.max(0, Math.min(3, tier - 1))];
     // Keep all tiers dark enough to read on pale winter maps (no near-white armor).
@@ -894,7 +894,7 @@ export class World3D {
 
   private buildVehicle(group: THREE.Group, kind: Kind, team: 0 | 1, tier: number): THREE.Object3D {
     const spec = vehicleSpec(kind);
-    const bulk = 1.08 + (tier - 1) * 0.12;
+    const bulk = 1.22 + (tier - 1) * 0.14;
     const pattern = this.patterns[Math.max(0, Math.min(3, tier - 1))];
     // Classic RTS chunk: hard olive/steel blocks, loud faction stripe.
     const paint = new THREE.Color(spec.paint).lerp(new THREE.Color(["#3a4a34", "#243028", "#3a444c", "#2a3238"][tier - 1] ?? spec.paint), 0.7);
@@ -1289,7 +1289,7 @@ export class World3D {
 
   private makeSelectMark(): THREE.Group {
     const g = new THREE.Group();
-    const line = new THREE.MeshBasicMaterial({ color: "#3ee0c5", depthTest: false, transparent: true, opacity: 0.95 });
+    const line = new THREE.MeshBasicMaterial({ color: "#3ee0c5", depthTest: false, transparent: true, opacity: 1, depthWrite: false });
     const corners = new THREE.Group();
     corners.name = "corners";
     for (const [sx, sz] of [
@@ -1299,10 +1299,12 @@ export class World3D {
       [1, 1],
     ] as const) {
       const c = new THREE.Group();
-      const a = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.35, 0.7), line.clone());
-      const b = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.35, 5.2), line.clone());
-      a.position.set(sx * 1.8, 0, 0);
-      b.position.set(0, 0, sz * 1.8);
+      const a = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.55, 0.9), line.clone());
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.55, 6.4), line.clone());
+      a.position.set(sx * 2.2, 0, 0);
+      b.position.set(0, 0, sz * 2.2);
+      a.renderOrder = 20;
+      b.renderOrder = 20;
       c.add(a, b);
       c.position.set(sx * 8, 0, sz * 8);
       corners.add(c);
@@ -1310,10 +1312,18 @@ export class World3D {
     g.add(corners);
     const bar = new THREE.Group();
     bar.name = "hp";
-    const bg = new THREE.Mesh(new THREE.PlaneGeometry(18, 2.2), new THREE.MeshBasicMaterial({ color: "#0a0c10", depthTest: false, transparent: true, opacity: 0.85 }));
-    const fill = new THREE.Mesh(new THREE.PlaneGeometry(16.6, 1.3), new THREE.MeshBasicMaterial({ color: "#3ee0c5", depthTest: false }));
+    const bg = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 3.4),
+      new THREE.MeshBasicMaterial({ color: "#05070a", depthTest: false, transparent: true, opacity: 0.92, depthWrite: false }),
+    );
+    const fill = new THREE.Mesh(
+      new THREE.PlaneGeometry(18.4, 2.2),
+      new THREE.MeshBasicMaterial({ color: "#3ee0c5", depthTest: false, depthWrite: false }),
+    );
     fill.name = "fill";
-    fill.position.z = 0.05;
+    fill.position.z = 0.08;
+    bg.renderOrder = 21;
+    fill.renderOrder = 22;
     bar.add(bg, fill);
     bar.position.y = 22;
     g.add(bar);
@@ -1344,13 +1354,14 @@ export class World3D {
       const bar = mark.getObjectByName("hp");
       if (bar) {
         const ratio = Math.max(0.05, unit.hp / Math.max(1, unit.maxHp));
-        bar.position.y = (DEFS[unit.kind].building ? 28 : DEFS[unit.kind].air ? 14 : 20) * Math.max(1, scale * 0.55);
-        bar.scale.set(Math.max(0.7, scale), 1, 1);
+        const baseY = DEFS[unit.kind].building ? 36 : DEFS[unit.kind].air ? 18 : 26;
+        bar.position.y = baseY * Math.max(0.85, Math.min(1.8, scale * 0.45));
+        bar.scale.set(Math.max(0.85, Math.min(2.4, scale * 0.55)), 1, 1);
         bar.quaternion.copy(this.camera.quaternion);
         const fill = bar.getObjectByName("fill") as THREE.Mesh | undefined;
         if (fill) {
           fill.scale.x = ratio;
-          fill.position.x = (ratio - 1) * 8.3;
+          fill.position.x = (ratio - 1) * 9.2;
           const mat = fill.material as THREE.MeshBasicMaterial;
           mat.color.set(ratio > 0.55 ? teamColor : ratio > 0.28 ? "#e8c56b" : "#ff5a36");
         }
