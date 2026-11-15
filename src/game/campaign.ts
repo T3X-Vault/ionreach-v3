@@ -71,7 +71,7 @@ function arc(countryId: string, skin: Skin, rows: Row[]): Chapter[] {
 const usa = arc("usa", {
   country: "United States",
   water: "river", waterAmt: 0.7, forest: 0.62, peaks: 0.7, salt: 2.1,
-  sky: ["#1c3348", "#8aa4b4"], ground: [92, 108, 78], canopy: "#2f5a3a", trunk: "#4a3424", waterFill: "#1a5870", snow: false,
+  sky: ["#152838", "#5a6e7c"], ground: [62, 74, 58], canopy: "#2a4a32", trunk: "#3a281c", waterFill: "#164858", snow: false,
   dust: false,
 }, [
   { theater: "Cascade Reach", line: "Snow, cedar, and a ford the tanks have to take.", brief: "Helion drops west of the Cascade. Ionite sits under the snow, and the river is the first wall.", hudson: "The ford is ours.", video: "usa" },
@@ -99,7 +99,7 @@ const usa = arc("usa", {
 const russia = arc("russia", {
   country: "Russia",
   water: "river", waterAmt: 0.55, forest: 0.42, peaks: 0.9, salt: 5.4,
-  sky: ["#243246", "#c5d0d8"], ground: [150, 156, 150], canopy: "#6d7c68", trunk: "#5c4030", waterFill: "#8ea8b8", snow: false,
+  sky: ["#1a2836", "#6a7884"], ground: [78, 86, 90], canopy: "#4a5a48", trunk: "#3a2c20", waterFill: "#3a5868", snow: false,
   dust: false,
 }, [
   { theater: "White Meridian", line: "A frozen cut, birch, and a ridge that does not forgive.", brief: "White Meridian. The river is a sheet of ice and the birch is thin cover.", hudson: "Meridian is held. Take the ice road before it snows shut.", video: "russia" },

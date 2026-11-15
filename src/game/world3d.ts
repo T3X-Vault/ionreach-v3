@@ -496,7 +496,11 @@ export class World3D {
       (shader.uniforms.top.value as THREE.Color).set(chapter.sky[0]);
       (shader.uniforms.horizon.value as THREE.Color).set(chapter.sky[1]);
     }
-    (this.scene.fog as THREE.Fog).color.set(chapter.sky[1]);
+    // Never use a bright horizon as fog — it bleaches units on winter maps.
+    const fogColor = new THREE.Color(chapter.sky[1]);
+    const lum = fogColor.r * 0.3 + fogColor.g * 0.59 + fogColor.b * 0.11;
+    if (lum > 0.45) fogColor.lerp(new THREE.Color("#2a343c"), 0.65);
+    (this.scene.fog as THREE.Fog).color.copy(fogColor);
     const positions: number[] = [];
     const colors: number[] = [];
     const indices: number[] = [];
@@ -753,6 +757,16 @@ export class World3D {
     const group = new THREE.Group();
     const legs: THREE.Object3D[] = [];
     let turret: THREE.Object3D | null = null;
+    if (!DEFS[e.kind].building && !DEFS[e.kind].air) {
+      // Dark contact shadow so units stay readable on pale winter ground.
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(DEFS[e.kind].radius * 1.15, 20),
+        new THREE.MeshBasicMaterial({ color: "#05070a", transparent: true, opacity: 0.55, depthWrite: false }),
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = 0.12;
+      group.add(shadow);
+    }
     if (DEFS[e.kind].building) turret = this.buildStructure(group, e.kind, e.team, tier);
     else if (DEFS[e.kind].air) this.buildAir(group, e.kind, e.team, tier);
     else if (e.kind === "rifle" || e.kind === "rocket" || e.kind === "watch" || e.kind === "patrol" || e.kind === "grenadier" || e.kind === "sergeant" || e.kind === "specops") {
@@ -766,17 +780,18 @@ export class World3D {
     rig.scale.setScalar(1.22 + (tier - 1) * 0.14);
     group.add(rig);
     const pattern = this.patterns[Math.max(0, Math.min(3, tier - 1))];
-    const clothColor = new THREE.Color(["#5a6b44", "#2c3a32", "#7a8680", "#dce4de"][tier - 1] ?? "#5a6b44");
-    if (team === 1) clothColor.lerp(new THREE.Color("#7a4038"), 0.62);
-    if (kind === "specops") clothColor.lerp(new THREE.Color("#10161c"), 0.82);
-    if (kind === "watch") clothColor.lerp(new THREE.Color("#c4b07a"), 0.55);
-    if (kind === "sergeant") clothColor.lerp(new THREE.Color("#3a4834"), 0.3);
+    // Keep all tiers dark enough to read on pale winter maps (no near-white armor).
+    const clothColor = new THREE.Color(["#3a4a30", "#243028", "#3a4448", "#2e383c"][tier - 1] ?? "#3a4a30");
+    if (team === 1) clothColor.lerp(new THREE.Color("#6a3028"), 0.7);
+    if (kind === "specops") clothColor.lerp(new THREE.Color("#0a1014"), 0.85);
+    if (kind === "watch") clothColor.lerp(new THREE.Color("#6a5a30"), 0.45);
+    if (kind === "sergeant") clothColor.lerp(new THREE.Color("#2a3828"), 0.35);
     const cloth = paintMat(clothColor, pattern, tier);
     const boot = mat("#0e1012", 0.62, 0.22);
     const skin = mat(team === 1 ? "#b87a58" : "#e2b894", 0.58, 0.04);
     const steel = mat("#3a444c", 0.22, 0.78);
     const dark = mat("#14181c", 0.4, 0.45);
-    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.28, 0.4, team === 0 ? "#3ee0c5" : "#ff4d2e", 0.8);
+    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.22, 0.35, team === 0 ? "#3ee0c5" : "#ff4d2e", 1.2);
     const glass = mat("#05080c", 0.06, 0.15, tier >= 3 ? "#8fd4ff" : "#111", tier >= 3 ? 0.85 : 0.15);
     const strap = mat("#2a2418", 0.7, 0.15);
     // Legs with thigh / shin / boot silhouette
@@ -801,7 +816,8 @@ export class World3D {
     piece(rig, BOX, steel, 0.55, 12.55, 0, 2.35, 2.85, 0.42);
     piece(rig, BOX, strap, -0.35, 13.35, 0.95, 0.28, 2.4, 0.18, false);
     piece(rig, BOX, strap, -0.35, 13.35, -0.95, 0.28, 2.4, 0.18, false);
-    piece(rig, BOX, accent, 1.45, 13.85, 0.85, 0.16, 0.85, 0.55, false);
+    piece(rig, BOX, accent, 1.45, 13.85, 0.85, 0.22, 1.1, 0.7, false);
+    piece(rig, BOX, accent, 1.35, 12.2, -0.85, 0.18, 0.9, 0.55, false);
     if (tier >= 2) {
       piece(rig, BOX, dark, -1.35, 12.85, 0, 1.15, 2.9, 1.95);
       piece(rig, BOX, steel, -1.55, 14.35, 0, 0.55, 0.85, 1.35, false);
@@ -913,13 +929,14 @@ export class World3D {
     const spec = vehicleSpec(kind);
     const bulk = 1 + (tier - 1) * 0.13;
     const pattern = this.patterns[Math.max(0, Math.min(3, tier - 1))];
-    const paint = new THREE.Color(spec.paint).lerp(new THREE.Color(["#556348", "#2a3a30", "#7a8680", "#eef2ec"][tier - 1] ?? spec.paint), 0.75);
-    if (team === 1) paint.lerp(new THREE.Color("#9a5348"), 0.5);
+    // Tier paints stay olive/steel — never bleach to white on snow maps.
+    const paint = new THREE.Color(spec.paint).lerp(new THREE.Color(["#3a4a34", "#243028", "#3a444c", "#2a3238"][tier - 1] ?? spec.paint), 0.7);
+    if (team === 1) paint.lerp(new THREE.Color("#8a4038"), 0.55);
     const hullMat = paintMat(paint, pattern, tier);
     const dark = mat("#12161a", 0.46, 0.5);
     const rubber = mat("#101214", 0.82, 0.06);
     const steel = mat("#d0d8de", 0.2, 0.86);
-    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.3, 0.35, team === 0 ? "#3ee0c5" : "#ff4d2e", 0.6);
+    const accent = mat(team === 0 ? "#3ee0c5" : "#ff4d2e", 0.25, 0.3, team === 0 ? "#3ee0c5" : "#ff4d2e", 1.1);
     const len = spec.len * bulk;
     const wid = spec.wid * bulk;
     const hullH = (kind === "bastion" ? 7.1 : kind === "viper" ? 4.35 : 5.85) + tier * 0.28;
@@ -942,7 +959,8 @@ export class World3D {
     piece(group, SPHERE, mat("#f7f6ea", 0.18, 0.1, "#fff4c8", 1), len * 0.48, 3.35, wid * 0.16, 0.55, 0.48, 0.55, false);
     piece(group, SPHERE, mat("#f7f6ea", 0.18, 0.1, "#fff4c8", 1), len * 0.48, 3.35, -wid * 0.16, 0.55, 0.48, 0.55, false);
     piece(group, CYL, dark, -len * 0.42, 4.65, wid * 0.12, 0.36, 1.7, 0.36, false).rotation.z = Math.PI / 2;
-    piece(group, BOX, accent, -len * 0.02, hullH + 1.15, 0, len * 0.2, 0.18, 1.55, false);
+    piece(group, BOX, accent, -len * 0.02, hullH + 1.15, 0, len * 0.35, 0.28, 1.85, false);
+    piece(group, BOX, accent, len * 0.2, hullH * 0.55, wid * 0.32, 0.35, 1.4, 0.2, false);
     if (kind === "t3x" || kind === "lancer" || kind === "bastion") {
       piece(group, BOX, dark, len * 0.12, hullH * 0.55, wid * 0.28, 2.2, 1.1, 0.35, false);
       piece(group, BOX, dark, len * 0.12, hullH * 0.55, -wid * 0.28, 2.2, 1.1, 0.35, false);

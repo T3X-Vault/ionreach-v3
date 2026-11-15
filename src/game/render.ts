@@ -556,13 +556,13 @@ export class Renderer {
         : e.kind === "sergeant"
           ? "#2e4634"
           : e.kind === "watch"
-            ? "#6a6238"
-            : "#3a5c3c";
-    const plate = foe ? "#4a2a24" : "#243038";
+            ? "#5a5430"
+            : "#2e4630";
+    const plate = foe ? "#4a2a24" : "#1a242c";
     const strap = "#2a2418";
-    ctx.fillStyle = "rgba(0,0,0,0.34)";
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.beginPath();
-    ctx.ellipse(1.8, 3.2, 10, 5.4, 0, 0, Math.PI * 2);
+    ctx.ellipse(1.8, 3.2, 11, 6, 0, 0, Math.PI * 2);
     ctx.fill();
     // legs + boots (top-down stride)
     for (const side of [-1, 1] as const) {
@@ -601,7 +601,8 @@ export class Renderer {
     ctx.roundRect(-0.8, -3.4, 5.4, 6.8, 1.2);
     ctx.fill();
     ctx.fillStyle = team;
-    ctx.fillRect(3.2, -4.2, 2.8, 1.7);
+    ctx.fillRect(3.0, -4.4, 3.4, 2.2);
+    ctx.fillRect(2.8, 2.6, 3.2, 1.4);
     ctx.fillStyle = "#14181c";
     ctx.fillRect(0.2, -2.6, 3.4, 0.7);
     ctx.fillRect(0.2, 0.2, 3.4, 0.7);
@@ -826,8 +827,12 @@ export class Renderer {
     const hv = kind === "harvester";
     const len = hv ? 34 : ace || kind === "bastion" ? 58 : kind === "viper" ? 36 : kind === "reaver" ? 48 : 44;
     const wid = hv ? 18 : kind === "viper" ? 18 : kind === "reaver" || kind === "bastion" || ace ? 28 : 22;
-    const paint = ace ? "#746236" : kind === "howl" ? "#424e36" : kind === "aegis" ? "#1f4650" : kind === "bastion" ? "#52382c" : kind === "lancer" ? "#3f4e42" : "#2e3c46";
+    const paint = ace ? "#5a4a28" : kind === "howl" ? "#36402c" : kind === "aegis" ? "#1a3840" : kind === "bastion" ? "#423028" : kind === "lancer" ? "#2e3c32" : "#243038";
     const skirt = "#12161a";
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.beginPath();
+    ctx.ellipse(0, 2, len * 0.42, wid * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
     // tracks / road wheels
     ctx.fillStyle = "#080c10";
     ctx.beginPath();
@@ -876,7 +881,7 @@ export class Renderer {
     ctx.fillRect(-len / 4, -wid / 2 + 5.5, 8, 2.2);
     ctx.fillRect(-len / 5, wid / 2 - 7.5, 7, 2.2);
     ctx.fillStyle = team;
-    ctx.fillRect(-6, -wid / 2 + 5, 12, 2);
+    ctx.fillRect(-8, -wid / 2 + 4.5, 16, 2.6);
     ctx.strokeStyle = "rgba(0,0,0,0.45)";
     ctx.lineWidth = 1.15;
     ctx.beginPath();
