@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { claimCheckin, checkedInToday, daysUntilPrize, prizeById, readCheckin, type CheckinState } from "@/lib/meta/checkin";
-import { readProfile } from "@/lib/meta/profile";
 import {
   Box,
   Crosshair,
@@ -798,29 +797,33 @@ export function Ionreach() {
       enterIphoneFull();
       return;
     }
-    const target = (mainRef.current ?? root) as HTMLElement & {
-      requestFullscreen?: (opts?: FullscreenOptions) => Promise<void>;
-      webkitRequestFullscreen?: () => Promise<void> | void;
-      webkitRequestFullScreen?: () => Promise<void> | void;
-    };
-    try {
-      if (target.requestFullscreen) {
-        await target.requestFullscreen({ navigationUI: "hide" });
-        setFull(true);
-        return;
+    const candidates = [root, mainRef.current].filter(Boolean) as Array<
+      HTMLElement & {
+        requestFullscreen?: (opts?: FullscreenOptions) => Promise<void>;
+        webkitRequestFullscreen?: () => Promise<void> | void;
+        webkitRequestFullScreen?: () => Promise<void> | void;
       }
-      if (target.webkitRequestFullscreen) {
-        await Promise.resolve(target.webkitRequestFullscreen());
-        setFull(true);
-        return;
+    >;
+    for (const target of candidates) {
+      try {
+        if (target.requestFullscreen) {
+          await target.requestFullscreen({ navigationUI: "hide" });
+          setFull(true);
+          return;
+        }
+        if (target.webkitRequestFullscreen) {
+          await Promise.resolve(target.webkitRequestFullscreen());
+          setFull(true);
+          return;
+        }
+        if (target.webkitRequestFullScreen) {
+          await Promise.resolve(target.webkitRequestFullScreen());
+          setFull(true);
+          return;
+        }
+      } catch {
+        /* try next target */
       }
-      if (target.webkitRequestFullScreen) {
-        await Promise.resolve(target.webkitRequestFullScreen());
-        setFull(true);
-        return;
-      }
-    } catch {
-      /* fall through to CSS fullscreen */
     }
     enterIphoneFull();
   }
