@@ -1314,11 +1314,23 @@ export class World3D {
     bar.name = "hp";
     const bg = new THREE.Mesh(
       new THREE.PlaneGeometry(20, 3.4),
-      new THREE.MeshBasicMaterial({ color: "#05070a", depthTest: false, transparent: true, opacity: 0.92, depthWrite: false }),
+      new THREE.MeshBasicMaterial({
+        color: "#05070a",
+        depthTest: false,
+        transparent: true,
+        opacity: 0.92,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
     );
     const fill = new THREE.Mesh(
       new THREE.PlaneGeometry(18.4, 2.2),
-      new THREE.MeshBasicMaterial({ color: "#3ee0c5", depthTest: false, depthWrite: false }),
+      new THREE.MeshBasicMaterial({
+        color: "#3ee0c5",
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
     );
     fill.name = "fill";
     fill.position.z = 0.08;
@@ -1357,7 +1369,8 @@ export class World3D {
         const baseY = DEFS[unit.kind].building ? 36 : DEFS[unit.kind].air ? 18 : 26;
         bar.position.y = baseY * Math.max(0.85, Math.min(1.8, scale * 0.45));
         bar.scale.set(Math.max(0.85, Math.min(2.4, scale * 0.55)), 1, 1);
-        bar.quaternion.copy(this.camera.quaternion);
+        // Billboard toward camera (DoubleSide + lookAt so bars stay readable).
+        bar.lookAt(this.camera.position);
         const fill = bar.getObjectByName("fill") as THREE.Mesh | undefined;
         if (fill) {
           fill.scale.x = ratio;
