@@ -1289,7 +1289,14 @@ export class World3D {
 
   private makeSelectMark(): THREE.Group {
     const g = new THREE.Group();
-    const line = new THREE.MeshBasicMaterial({ color: "#3ee0c5", depthTest: false, transparent: true, opacity: 1, depthWrite: false });
+    const line = new THREE.MeshBasicMaterial({
+      color: "#3ee0c5",
+      depthTest: false,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      fog: false,
+    });
     const corners = new THREE.Group();
     corners.name = "corners";
     for (const [sx, sz] of [
@@ -1312,44 +1319,39 @@ export class World3D {
     g.add(corners);
     const bar = new THREE.Group();
     bar.name = "hp";
-    // Fat C&C-style HP plate — must read at long tactical camera distance.
-    const bg = new THREE.Mesh(
-      new THREE.PlaneGeometry(28, 6.2),
-      new THREE.MeshBasicMaterial({
-        color: "#05070a",
-        depthTest: false,
-        transparent: true,
-        opacity: 0.95,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
-    );
-    const rim = new THREE.Mesh(
-      new THREE.PlaneGeometry(28.6, 6.8),
-      new THREE.MeshBasicMaterial({
-        color: "#c8d0d4",
-        depthTest: false,
-        transparent: true,
-        opacity: 0.55,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
-    );
-    rim.position.z = -0.04;
-    const fill = new THREE.Mesh(
-      new THREE.PlaneGeometry(25.5, 4.2),
-      new THREE.MeshBasicMaterial({
-        color: "#3ee0c5",
+    // Sprite HP plate always faces the camera (planes were vanishing at tactical pitch).
+    const mkSprite = (w: number, h: number, color: string, opacity = 1) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 16;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, 64, 16);
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const mat = new THREE.SpriteMaterial({
+        map: tex,
+        color: "#ffffff",
         depthTest: false,
         depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
-    );
+        transparent: opacity < 1,
+        opacity,
+        fog: false,
+        sizeAttenuation: true,
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(w, h, 1);
+      sprite.renderOrder = 30;
+      return sprite;
+    };
+    const rim = mkSprite(30, 7.2, "#c8d0d4", 0.7);
+    rim.position.z = -0.2;
+    const bg = mkSprite(28, 6, "#05070a", 0.95);
+    const fill = mkSprite(25.5, 4.2, "#3ee0c5", 1);
     fill.name = "fill";
-    fill.position.z = 0.1;
-    rim.renderOrder = 20;
-    bg.renderOrder = 21;
-    fill.renderOrder = 22;
+    fill.position.z = 0.2;
     bar.add(rim, bg, fill);
     bar.position.y = 22;
     g.add(bar);
@@ -1382,15 +1384,14 @@ export class World3D {
         const ratio = Math.max(0.05, unit.hp / Math.max(1, unit.maxHp));
         const baseY = DEFS[unit.kind].building ? 42 : DEFS[unit.kind].air ? 22 : 30;
         bar.position.y = baseY * Math.max(0.9, Math.min(2.1, scale * 0.5));
-        const barScale = Math.max(1.15, Math.min(3.2, scale * 0.7));
+        const barScale = Math.max(1.35, Math.min(3.6, scale * 0.85));
         bar.scale.set(barScale, barScale, 1);
-        // Billboard toward camera (DoubleSide + lookAt so bars stay readable).
-        bar.lookAt(this.camera.position);
-        const fill = bar.getObjectByName("fill") as THREE.Mesh | undefined;
+        const fill = bar.getObjectByName("fill") as THREE.Sprite | undefined;
         if (fill) {
-          fill.scale.x = ratio;
-          fill.position.x = (ratio - 1) * 12.75;
-          const mat = fill.material as THREE.MeshBasicMaterial;
+          const fullW = 25.5;
+          fill.scale.set(fullW * ratio, 4.2, 1);
+          fill.position.x = (ratio - 1) * (fullW * 0.5);
+          const mat = fill.material as THREE.SpriteMaterial;
           mat.color.set(ratio > 0.55 ? teamColor : ratio > 0.28 ? "#e8c56b" : "#ff5a36");
         }
       }
