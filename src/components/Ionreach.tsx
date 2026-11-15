@@ -904,6 +904,7 @@ export function Ionreach() {
                       type="button"
                       onClick={() => {
                         if (id === "settings") setSettingsTab("wallet");
+                        if (id === "campaign") setPickingCountry(null);
                         setMenuTool(id);
                       }}
                       className={"menu-nav-btn min-h-12 px-4 font-display text-xl " + (id === "campaign" ? "sm:col-span-2 border-ion/50" : "")}
@@ -928,27 +929,66 @@ export function Ionreach() {
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setMenuTool(null)} className="cta-ghost m-3 min-h-11 self-start px-4 font-display text-xl">
-                Back
+              <button
+                type="button"
+                onClick={() => {
+                  if (menuTool === "campaign" && pickingCountry) {
+                    setPickingCountry(null);
+                    return;
+                  }
+                  setMenuTool(null);
+                }}
+                className="cta-ghost m-3 min-h-11 self-start px-4 font-display text-xl"
+              >
+                {menuTool === "campaign" && pickingCountry ? "Countries" : "Back"}
               </button>
             )}
             {menuTool === "campaign" && (
               <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-                <div className="flex flex-col gap-2">
-                  {COUNTRY_IDS.map((id) => {
-                    const chapters = countryOf(id);
-                    const on = pickingCountry === id;
-                    const fact = ARMY[id];
-                    return (
-                      <section key={id} className={on ? "panel-glass border-ion" : "panel-glass"}>
-                        <button type="button" onClick={() => setPickingCountry(on ? null : id)} className="flex w-full items-center gap-3 p-2 text-left">
+                {!pickingCountry ? (
+                  <div className="flex flex-col gap-2">
+                    {COUNTRY_IDS.map((id) => {
+                      const chapters = countryOf(id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setPickingCountry(id)}
+                          className="panel-glass flex w-full items-center gap-3 p-2 text-left transition-colors hover:border-ion/50"
+                        >
                           <Flag id={id} className="h-12 w-20 shrink-0" />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate font-display text-xl tracking-wide">{chapters[0]?.country}</span>
+                            <span className="mt-0.5 block text-xs text-muted">{chapters.length} chapters</span>
                           </span>
                         </button>
-                        {on && fact && (
-                          <div className="border-t border-line/80 px-3 py-3">
+                      );
+                    })}
+                  </div>
+                ) : (
+                  (() => {
+                    const id = pickingCountry;
+                    const chapters = countryOf(id);
+                    const fact = ARMY[id];
+                    void storyTick;
+                    let next = chapters.length - 1;
+                    for (let i = 0; i < chapters.length; i++) {
+                      if (!isOpen(chapters, i + 1)) {
+                        next = i;
+                        break;
+                      }
+                    }
+                    return (
+                      <section className="panel-glass border-ion">
+                        <div className="flex items-center gap-3 border-b border-line/80 p-2">
+                          <Flag id={id} className="h-12 w-20 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-display text-xl tracking-wide">{chapters[0]?.country}</p>
+                            <p className="text-xs text-muted">Choose a chapter, or Countries to switch.</p>
+                          </div>
+                        </div>
+                        {fact && (
+                          <div className="border-b border-line/80 px-3 py-3">
                             <p className="font-display hud-chip text-xs text-ion">Public record</p>
                             <p className="mt-1 text-sm text-muted">{fact.line}</p>
                             <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
@@ -965,39 +1005,29 @@ export function Ionreach() {
                                 <dd>{fact.services}</dd>
                               </div>
                             </dl>
-                            <div className="mt-3 flex flex-col gap-2">
-                              {(() => {
-                                void storyTick;
-                                let next = chapters.length - 1;
-                                for (let i = 0; i < chapters.length; i++) {
-                                  if (!isOpen(chapters, i + 1)) {
-                                    next = i;
-                                    break;
-                                  }
-                                }
-                                return chapters.map((chapter, index, list) => {
-                                  const open = isOpen(list, index);
-                                  const upcoming = index === next;
-                                  return (
-                                    <article key={chapter.id} className="border border-line/80 bg-bg/40 p-2">
-                                      <p className="sticky top-0 z-20 bg-bg/90 py-1 font-display text-lg tracking-wide text-fg">{chapter.theater}</p>
-                                      <p className={upcoming ? "mt-1 text-[13px] leading-snug text-[#6cb6ff]" : "mt-1 text-[13px] leading-snug text-fg/80"}>{STORIES[chapter.theater] ?? chapter.line}</p>
-                                      {!open && <p className="mt-1 text-[11px] text-muted">Sealed until the fight before it is held.</p>}
-                                      <div className="mt-2 flex gap-1">
-                                        <button type="button" disabled={!chapter.video} onClick={() => { if (!chapter.video) return; setMenuTool(null); setBrief(chapter); }} className="cta-ghost min-h-8 px-2 font-display text-sm disabled:opacity-40">Watch</button>
-                                        <button type="button" disabled={!open || !chapter.video} onClick={() => { if (!open || !chapter.video) return; setMenuTool(null); setBrief(chapter); }} className="cta-primary min-h-8 px-2 font-display text-sm disabled:opacity-40">Play</button>
-                                      </div>
-                                    </article>
-                                  );
-                                });
-                              })()}
-                            </div>
                           </div>
                         )}
+                        <div className="flex flex-col gap-2 p-2">
+                          {chapters.map((chapter, index, list) => {
+                            const open = isOpen(list, index);
+                            const upcoming = index === next;
+                            return (
+                              <article key={chapter.id} className="border border-line/80 bg-bg/40 p-2">
+                                <p className="font-display text-lg tracking-wide text-fg">{chapter.theater}</p>
+                                <p className={upcoming ? "mt-1 text-[13px] leading-snug text-[#6cb6ff]" : "mt-1 text-[13px] leading-snug text-fg/80"}>{STORIES[chapter.theater] ?? chapter.line}</p>
+                                {!open && <p className="mt-1 text-[11px] text-muted">Sealed until the fight before it is held.</p>}
+                                <div className="mt-2 flex gap-1">
+                                  <button type="button" disabled={!chapter.video} onClick={() => { if (!chapter.video) return; setMenuTool(null); setBrief(chapter); }} className="cta-ghost min-h-8 px-2 font-display text-sm disabled:opacity-40">Watch</button>
+                                  <button type="button" disabled={!open || !chapter.video} onClick={() => { if (!open || !chapter.video) return; setMenuTool(null); setBrief(chapter); }} className="cta-primary min-h-8 px-2 font-display text-sm disabled:opacity-40">Play</button>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
                       </section>
                     );
-                  })}
-                </div>
+                  })()
+                )}
               </div>
             )}
             {menuTool === "multi" && (
@@ -1543,10 +1573,25 @@ function Flag({ id, className }: { id: string; className?: string }) {
   }
   if (id === "australia") {
     return (
-      <span className={box + " relative bg-[#012169]"} aria-hidden>
-        <span className="absolute top-0 left-0 h-1/2 w-[42%]" style={{ background: "linear-gradient(90deg,#012169,#c8102e 40%,#fff 40% 60%,#c8102e 60%,#012169)" }} />
-        <span className="absolute right-[18%] bottom-[22%] size-1.5 rounded-full bg-white" />
-      </span>
+      <svg viewBox="0 0 60 30" className={box} preserveAspectRatio="none" aria-hidden>
+        <rect width="60" height="30" fill="#012169" />
+        {/* Union Jack canton */}
+        <g>
+          <rect width="30" height="15" fill="#012169" />
+          <path d="M0 0 L30 15 M30 0 L0 15" stroke="#fff" strokeWidth="3" />
+          <path d="M0 0 L30 15 M30 0 L0 15" stroke="#c8102e" strokeWidth="1.5" />
+          <path d="M15 0 V15 M0 7.5 H30" stroke="#fff" strokeWidth="5" />
+          <path d="M15 0 V15 M0 7.5 H30" stroke="#c8102e" strokeWidth="3" />
+        </g>
+        {/* Commonwealth Star */}
+        <polygon fill="#fff" points="15,17.2 15.7,19.4 18,19.4 16.15,20.75 16.85,23 15,21.6 13.15,23 13.85,20.75 12,19.4 14.3,19.4" />
+        {/* Southern Cross */}
+        <polygon fill="#fff" points="42,5.2 42.45,6.55 43.9,6.55 42.75,7.4 43.2,8.75 42,7.9 40.8,8.75 41.25,7.4 40.1,6.55 41.55,6.55" />
+        <polygon fill="#fff" points="48,10.2 48.4,11.4 49.65,11.4 48.65,12.15 49.05,13.35 48,12.6 46.95,13.35 47.35,12.15 46.35,11.4 47.6,11.4" />
+        <polygon fill="#fff" points="46.5,16.4 46.85,17.45 48,17.45 47.1,18.1 47.45,19.15 46.5,18.5 45.55,19.15 45.9,18.1 45,17.45 46.15,17.45" />
+        <polygon fill="#fff" points="40.5,13.5 40.75,14.25 41.55,14.25 40.9,14.7 41.15,15.45 40.5,15 39.85,15.45 40.1,14.7 39.45,14.25 40.25,14.25" />
+        <polygon fill="#fff" points="42.8,21.2 43.25,22.55 44.7,22.55 43.55,23.4 44,24.75 42.8,23.9 41.6,24.75 42.05,23.4 40.9,22.55 42.35,22.55" />
+      </svg>
     );
   }
   if (id === "korea") {
